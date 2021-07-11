@@ -11,7 +11,8 @@ type InstallSubCommand struct {
 	Opts InstallSubCommandOpts
 }
 type InstallSubCommandOpts struct {
-	Args struct {
+	Force bool `long:"force" short:"f" description:"force install"`
+	Args  struct {
 		Name string
 	} `positional-args:"yes" required:"yes"`
 }
@@ -26,5 +27,5 @@ func (cmd *InstallSubCommand) AddCommand(parser *flags.Parser) error {
 }
 
 func (cmd *InstallSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
-	return manager.Install(cmd.Opts.Args.Name)
+	return manager.Install(cmd.Opts.Args.Name, cmd.Opts.Force)
 }

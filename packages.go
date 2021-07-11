@@ -1,6 +1,13 @@
 package bpm
 
-import "github.com/rs/zerolog"
+import (
+	"os"
+	"runtime"
+	"strings"
+
+	"github.com/creasty/defaults"
+	"github.com/rs/zerolog"
+)
 
 type PackageProvider interface {
 	GetLatest(pkg Package) (version string, err error)
@@ -8,11 +15,29 @@ type PackageProvider interface {
 }
 
 type Package struct {
-	Name     string `yaml:"name"`
-	Provider string `yaml:"provider"`
-	URL      string `yaml:"url"`
-	GOOS     string `yaml:"goos"`
-	GOARCH   string `yaml:"goarch"`
+	Name          string `yaml:"name"`
+	Provider      string `yaml:"provider"`
+	URL           string `yaml:"url"`
+	GOOS          string `yaml:"goos"`
+	GOARCH        string `yaml:"goarch"`
+	AssetPattern  string `yaml:"asset_pattern" default:"${goos}-${goarch}"`
+	ArchiveFormat string `yaml:"archive_format" default:""`
+	BinPattern    string `yaml:"bin_pattern" default:"${name}"`
+}
+
+func (pkg *Package) SetDefaults() {
+	pkg.GOOS = strings.ToLower(runtime.GOOS)
+	pkg.GOARCH = strings.ToLower(runtime.GOARCH)
+}
+
+func (pkg *Package) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	defaults.Set(pkg)
+
+	type plain Package
+	if err := unmarshal((*plain)(pkg)); err != nil {
+		return err
+	}
+	return nil
 }
 
 type StateFile struct {
@@ -25,3 +50,19 @@ type NewPackageProviderFunc = func(logger zerolog.Logger) PackageProvider
 var (
 	PackageProviders = make(map[string]NewPackageProviderFunc)
 )
+
+func (pkg *Package) patternExpand(pattern string) string {
+	mapper := func(placeHolderName string) string {
+		switch placeHolderName {
+		case "goos":
+			return pkg.GOOS
+		case "goarch":
+			return pkg.GOARCH
+		case "name":
+			return pkg.Name
+		default:
+			return ""
+		}
+	}
+	return os.Expand(pattern, mapper)
+}

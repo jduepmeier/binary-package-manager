@@ -1,15 +1,20 @@
 package bpm
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"runtime"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog"
+	"gopkg.in/yaml.v2"
 )
 
 type Manager struct {
@@ -18,6 +23,7 @@ type Manager struct {
 	Providers map[string]PackageProvider
 	Packages  map[string]Package
 	logger    zerolog.Logger
+	tmpDir    string
 }
 
 func NewManager(configPath string, logger zerolog.Logger) (*Manager, error) {
@@ -95,12 +101,7 @@ func (manager *Manager) LoadState() error {
 			if err != nil {
 				return err
 			}
-			if pkg.GOOS == "" {
-				pkg.GOOS = runtime.GOOS
-			}
-			if pkg.GOARCH == "" {
-				pkg.GOARCH = runtime.GOARCH
-			}
+			manager.logger.Info().Msgf("found package %s", pkg.Name)
 			manager.Packages[pkg.Name] = pkg
 		}
 		return nil
@@ -115,16 +116,22 @@ func (manager *Manager) LoadState() error {
 }
 
 func (manager *Manager) Info(name string) error {
-	for _, pkg := range manager.StateFile.Packages {
-		fmt.Printf("- %s\n", pkg)
-		return nil
+	pkgName, ok := manager.Packages[name]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
 	}
-
-	return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
+	encoder := yaml.NewEncoder(os.Stdout)
+	encoder.Encode(pkgName)
+	version, ok := manager.StateFile.Packages[name]
+	if !ok {
+		version = "not installed"
+	}
+	fmt.Printf("version: %s\n", version)
+	return nil
 }
 
 func (manager *Manager) List() error {
-	for name, _ := range manager.Packages {
+	for name := range manager.Packages {
 		fmt.Printf("- %s\n", name)
 	}
 	return nil
@@ -148,7 +155,7 @@ func (manager *Manager) Add(name string, url string) error {
 	return dumpYaml(filepath.Join(manager.Config.PackagesFolder, name+".yaml"), &pkg)
 }
 
-func (manager *Manager) Install(name string) (err error) {
+func (manager *Manager) Install(name string, force bool) (err error) {
 	pkg, ok := manager.Packages[name]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
@@ -166,25 +173,33 @@ func (manager *Manager) Install(name string) (err error) {
 		}
 	}
 	manager.logger.Info().Msgf("find package version %s", version)
-	if version == currentVersion {
+	if version == currentVersion && !force {
 		manager.logger.Info().Msgf("version is already installed :)")
 		return nil
 	}
 
-	cacheDir, err := ioutil.TempDir("", "bpm-*")
+	manager.tmpDir, err = ioutil.TempDir("", "bpm-*")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		os.RemoveAll(cacheDir)
+		os.RemoveAll(manager.tmpDir)
+		manager.tmpDir = ""
 	}()
 
-	path, err := provider.FetchPackage(pkg, cacheDir)
+	path, err := provider.FetchPackage(pkg, manager.tmpDir)
 	if err != nil {
 		return err
 	}
 
-	err = manager.install(&pkg, path)
+	if pkg.ArchiveFormat != "" {
+		path, err = manager.extractPackage(&pkg, path)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = manager.install(&pkg, version, path)
 	if err != nil {
 		return nil
 	}
@@ -193,14 +208,145 @@ func (manager *Manager) Install(name string) (err error) {
 	return nil
 }
 
-func (manager *Manager) install(pkg *Package, sourceFile string) error {
-	err := os.Rename(sourceFile, filepath.Join(manager.Config.BinFolder, pkg.Name))
+func (manager *Manager) install(pkg *Package, version string, sourceFile string) error {
+	targetFile := filepath.Join(manager.Config.BinFolder, pkg.Name)
+	manager.logger.Debug().Msgf("install file %s to %s", sourceFile, targetFile)
+	// first copy the new file to target file
+	inputFile, err := os.Open(sourceFile)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		inputFile.Close()
+	}()
+	targetPathWithVersion := filepath.Join(manager.Config.BinFolder, fmt.Sprintf("%s-%s", pkg.Name, version))
+	outputFile, err := os.Create(targetPathWithVersion)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(outputFile, inputFile)
+	outputFile.Close()
+	if err != nil {
+		os.Remove(targetPathWithVersion)
+		return err
+	}
+	// make it executable
+	err = os.Chmod(targetPathWithVersion, 0755)
+	if err != nil {
+		os.Remove(targetPathWithVersion)
+		return err
+	}
+
+	// then we can rename the file
+	err = os.Rename(targetPathWithVersion, targetFile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (manager *Manager) extractPackage(pkg *Package, sourceFile string) error {
-	panic("not implemented")
+func (manager *Manager) extractPackage(pkg *Package, sourceFile string) (string, error) {
+	manager.logger.Info().Msgf("extract package %s (format %s)", pkg.Name, pkg.ArchiveFormat)
+	switch pkg.ArchiveFormat {
+	case "tar":
+		return manager.extractTar(pkg, sourceFile)
+	case "tar.gz":
+		return manager.extractTarGZ(pkg, sourceFile)
+	case "zip":
+		return manager.extractZip(pkg, sourceFile)
+	default:
+		return "", fmt.Errorf("unknown archive format %s", pkg.ArchiveFormat)
+	}
+}
+
+func (manager *Manager) extractTar(pkg *Package, sourcePath string) (string, error) {
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return "", err
+	}
+	defer sourceFile.Close()
+	return manager.extractTarReader(pkg, sourceFile)
+}
+func (manager *Manager) extractTarReader(pkg *Package, reader io.Reader) (string, error) {
+	tarReader := tar.NewReader(reader)
+	var outputPath string
+	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern))
+	if err != nil {
+		return outputPath, err
+	}
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			return outputPath, fmt.Errorf("archive does not contain a file matchin pattern %s", pkg.BinPattern)
+		} else if err != nil {
+			return outputPath, err
+		}
+
+		// search for regular files
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		name := strings.ToLower(header.Name)
+		if binPattern.Match([]byte(name)) {
+			outputPath = filepath.Join(manager.tmpDir, fmt.Sprintf("output-%s", pkg.Name))
+			file, err := os.Create(outputPath)
+			if err != nil {
+				return outputPath, err
+			}
+			defer file.Close()
+			_, err = io.Copy(file, tarReader)
+			return outputPath, err
+		}
+	}
+}
+
+func (manager *Manager) extractTarGZ(pkg *Package, sourceFile string) (string, error) {
+	file, err := os.Open(sourceFile)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	reader, err := gzip.NewReader(file)
+	if err != nil {
+		return "", err
+	}
+
+	return manager.extractTarReader(pkg, reader)
+}
+
+func (manager *Manager) extractZip(pkg *Package, sourceFile string) (string, error) {
+	var outputPath string
+	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern))
+	if err != nil {
+		return outputPath, err
+	}
+
+	reader, err := zip.OpenReader(sourceFile)
+	if err != nil {
+		return outputPath, err
+	}
+	reader.Close()
+	for _, file := range reader.File {
+		name := strings.ToLower(file.Name)
+		if file.FileInfo().Mode().IsRegular() && binPattern.Match([]byte(name)) {
+			outputPath = filepath.Join(manager.tmpDir, fmt.Sprintf("output-%s", pkg.Name))
+			outputFile, err := os.Create(outputPath)
+			if err != nil {
+				return outputPath, err
+			}
+			defer outputFile.Close()
+			zipFile, err := file.Open()
+			if err != nil {
+				return outputPath, err
+			}
+			defer zipFile.Close()
+			_, err = io.Copy(outputFile, zipFile)
+			return outputPath, err
+		}
+	}
+
+	return outputPath, fmt.Errorf("archive does not contain a file matching pattern %s", pkg.BinPattern)
 }

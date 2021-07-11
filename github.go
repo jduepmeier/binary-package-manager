@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/google/go-github/v36/github"
@@ -57,12 +58,16 @@ func (provider *GithubProvider) FetchPackage(pkg Package, cacheDir string) (path
 	if err != nil {
 		return "", err
 	}
-	provider.logger.Debug().Msgf("search for goos = %s, goarch = %s", pkg.GOOS, pkg.GOARCH)
+	assetPattern, err := regexp.Compile(pkg.patternExpand(pkg.AssetPattern))
+	if err != nil {
+		return "", err
+	}
+	provider.logger.Debug().Msgf("search for pattern %s", assetPattern.String())
 	for _, asset := range release.Assets {
 		name := asset.GetName()
 		provider.logger.Debug().Msgf("try asset %s", name)
 		nameLower := strings.ToLower(name)
-		if strings.Contains(nameLower, pkg.GOOS) && strings.Contains(nameLower, pkg.GOARCH) {
+		if assetPattern.Match([]byte(nameLower)) {
 			url := asset.GetBrowserDownloadURL()
 			provider.logger.Debug().Msgf("get asset from %s", url)
 			req, err := provider.client.NewRequest("GET", url, nil)
