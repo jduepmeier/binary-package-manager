@@ -208,6 +208,68 @@ func (manager *Manager) Install(name string, force bool) (err error) {
 	return nil
 }
 
+func (manager *Manager) Update() (err error) {
+	for _, pkg := range manager.Packages {
+		err := manager.update(&pkg)
+		if err != nil {
+			logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
+			logger.Error().Msgf("cannot update package: %s. Skipping...", err)
+		}
+	}
+	return nil
+}
+
+func (manager *Manager) update(pkg *Package) (err error) {
+	logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
+	provider, ok := manager.Providers[pkg.Provider]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrProviderNotFound, pkg.Provider)
+	}
+	currentVersion, ok := manager.StateFile.Packages[pkg.Name]
+	if !ok || currentVersion == "" {
+		logger.Info().Msg("package is not installed")
+		return nil
+	}
+	version, err := provider.GetLatest(*pkg)
+	if err != nil {
+		return err
+	}
+	logger.Info().Msgf("find package version %s", version)
+	if version == currentVersion {
+		logger.Info().Msgf("version is up to date :)")
+		return nil
+	}
+
+	manager.tmpDir, err = ioutil.TempDir("", "bpm-*")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		os.RemoveAll(manager.tmpDir)
+		manager.tmpDir = ""
+	}()
+
+	path, err := provider.FetchPackage(*pkg, manager.tmpDir)
+	if err != nil {
+		return err
+	}
+
+	if pkg.ArchiveFormat != "" {
+		path, err = manager.extractPackage(pkg, path)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = manager.install(pkg, version, path)
+	if err != nil {
+		return nil
+	}
+
+	manager.StateFile.Packages[pkg.Name] = version
+	return nil
+}
+
 func (manager *Manager) install(pkg *Package, version string, sourceFile string) error {
 	targetFile := filepath.Join(manager.Config.BinFolder, pkg.Name)
 	manager.logger.Debug().Msgf("install file %s to %s", sourceFile, targetFile)
