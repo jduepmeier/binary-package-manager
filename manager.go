@@ -17,6 +17,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	StateFileVersion = 1
+)
+
 type Manager struct {
 	Config    *Config
 	StateFile *StateFile
@@ -78,8 +82,12 @@ func (manager *Manager) LoadState() error {
 		Version:  1,
 		Packages: make(map[string]string),
 	}
+	stateFilePath := filepath.Join(manager.Config.StateFolder, "state.yaml")
+	err := loadYaml(stateFilePath, &manager.StateFile)
 
-	err := loadYaml(filepath.Join(manager.Config.StateFolder, "state.yaml"), &manager.StateFile)
+	if manager.StateFile.Version != StateFileVersion {
+		return fmt.Errorf("%w: %s", ErrMigrateNeeded, stateFilePath)
+	}
 
 	// no state file exists.
 	if os.IsNotExist(err) {

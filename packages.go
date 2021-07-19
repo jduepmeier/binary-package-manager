@@ -9,12 +9,17 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	PackageSchemaVersion = 1
+)
+
 type PackageProvider interface {
 	GetLatest(pkg Package) (version string, err error)
 	FetchPackage(pkg Package, cacheDir string) (path string, err error)
 }
 
 type Package struct {
+	SchemaVersion int    `yaml:"schema_version" default:"1"`
 	Name          string `yaml:"name"`
 	Provider      string `yaml:"provider"`
 	URL           string `yaml:"url"`
@@ -34,6 +39,22 @@ func (pkg *Package) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(pkg)
 
 	type plain Package
+
+	type T struct {
+		SchemaVersion int `yaml:"schema_version"`
+	}
+	obj := &T{
+		SchemaVersion: 1,
+	}
+
+	if err := unmarshal((*T)(obj)); err != nil {
+		return err
+	}
+
+	if obj.SchemaVersion != PackageSchemaVersion {
+		return ErrMigrateNeeded
+	}
+
 	if err := unmarshal((*plain)(pkg)); err != nil {
 		return err
 	}
