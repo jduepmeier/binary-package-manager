@@ -11,6 +11,7 @@ import (
 type opts struct {
 	LogLevel string `short:"l" long:"loglevel" description:"loglevel to set"`
 	Config   string `short:"c" long:"config" description:"path to config"`
+	Quiet    bool   `short:"q" long:"quiet" description:"do not output on stdout"`
 }
 
 type SubCommand interface {
@@ -32,6 +33,7 @@ func run() int {
 	opts := opts{
 		LogLevel: "warn",
 		Config:   "",
+		Quiet:    false,
 	}
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	parser := flags.NewParser(&opts, flags.Default)
@@ -59,6 +61,7 @@ func run() int {
 		logger.Err(err).Msg("cannot create manager instance")
 		return EXIT_CONFIG_ERROR
 	}
+	manager.Config.Quiet = opts.Quiet
 
 	cmd := subCommands[parser.Active.Name]
 

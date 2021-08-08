@@ -20,6 +20,7 @@ type Config struct {
 	BinFolder      string `yaml:"bin_folder"`
 	StateFolder    string `yaml:"state_folder"`
 	PackagesFolder string `yaml:"packages_folder"`
+	Quiet          bool   `yaml:"quiet"`
 }
 
 func ReadConfig(path string) (*Config, error) {

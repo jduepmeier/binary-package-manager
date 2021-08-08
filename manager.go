@@ -247,6 +247,10 @@ func (manager *Manager) update(pkg *Package) (err error) {
 		return nil
 	}
 
+	if !manager.Config.Quiet {
+		fmt.Printf("%s %s => %s\n", pkg.Name, currentVersion, version)
+	}
+
 	manager.tmpDir, err = ioutil.TempDir("", "bpm-*")
 	if err != nil {
 		return err
