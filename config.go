@@ -9,6 +9,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var (
+	DefaultConfigPaths = []string{
+		"config.yaml",
+		"~/.config/bpm/config.yaml",
+	}
+)
+
 type Config struct {
 	BinFolder      string `yaml:"bin_folder"`
 	StateFolder    string `yaml:"state_folder"`
@@ -20,10 +27,18 @@ func ReadConfig(path string) (*Config, error) {
 		BinFolder:   "$HOME/bin",
 		StateFolder: "$HOME/.config/bpm",
 	}
-
-	err := loadYaml(path, &config)
-	if err != nil {
-		return config, fmt.Errorf("cannot read %s", err)
+	if path != "" {
+		err := loadYaml(path, &config)
+		if err != nil {
+			return config, fmt.Errorf("cannot %s", err)
+		}
+	} else {
+		for _, path := range DefaultConfigPaths {
+			err := loadYaml(expandPath(path), &config)
+			if err == nil {
+				break
+			}
+		}
 	}
 
 	config.BinFolder = expandPath(config.BinFolder)
@@ -32,7 +47,7 @@ func ReadConfig(path string) (*Config, error) {
 		config.PackagesFolder = filepath.Join(config.StateFolder, "packages")
 	}
 
-	return config, err
+	return config, nil
 }
 
 func loadYaml(path string, obj interface{}) error {

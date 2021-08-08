@@ -31,7 +31,7 @@ const (
 func run() int {
 	opts := opts{
 		LogLevel: "warn",
-		Config:   "config.yaml",
+		Config:   "",
 	}
 	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 	parser := flags.NewParser(&opts, flags.Default)
