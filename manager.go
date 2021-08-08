@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -96,7 +95,7 @@ func (manager *Manager) LoadState() error {
 		return err
 	}
 
-	err = filepath.Walk(manager.Config.PackagesFolder, func(path string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(manager.Config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
