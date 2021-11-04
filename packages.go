@@ -15,7 +15,7 @@ const (
 
 type PackageProvider interface {
 	GetLatest(pkg Package) (version string, err error)
-	FetchPackage(pkg Package, cacheDir string) (path string, err error)
+	FetchPackage(pkg Package, version string, cacheDir string) (path string, err error)
 }
 
 type Package struct {
@@ -28,6 +28,7 @@ type Package struct {
 	AssetPattern  string `yaml:"asset_pattern" default:"${goos}-${goarch}"`
 	ArchiveFormat string `yaml:"archive_format" default:""`
 	BinPattern    string `yaml:"bin_pattern" default:"${name}"`
+	DownloadUrl   string `yaml:"download_url" default:""`
 }
 
 func (pkg *Package) SetDefaults() {
@@ -72,7 +73,7 @@ var (
 	PackageProviders = make(map[string]NewPackageProviderFunc)
 )
 
-func (pkg *Package) patternExpand(pattern string) string {
+func (pkg *Package) patternExpand(pattern string, version string) string {
 	mapper := func(placeHolderName string) string {
 		switch placeHolderName {
 		case "goos":
@@ -81,6 +82,8 @@ func (pkg *Package) patternExpand(pattern string) string {
 			return pkg.GOARCH
 		case "name":
 			return pkg.Name
+		case "version":
+			return version
 		default:
 			return ""
 		}

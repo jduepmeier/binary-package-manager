@@ -52,13 +52,13 @@ func (provider *GithubProvider) GetLatest(pkg Package) (version string, err erro
 
 	return release.GetTagName(), err
 }
-func (provider *GithubProvider) FetchPackage(pkg Package, cacheDir string) (path string, err error) {
+func (provider *GithubProvider) FetchPackage(pkg Package, version string, cacheDir string) (path string, err error) {
 	ctx := context.TODO()
 	release, err := provider.getLatestRelease(pkg)
 	if err != nil {
 		return "", err
 	}
-	assetPattern, err := regexp.Compile(pkg.patternExpand(pkg.AssetPattern))
+	assetPattern, err := regexp.Compile(pkg.patternExpand(pkg.AssetPattern, version))
 	if err != nil {
 		return "", err
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -194,13 +195,18 @@ func (manager *Manager) Install(name string, force bool) (err error) {
 		manager.tmpDir = ""
 	}()
 
-	path, err := provider.FetchPackage(pkg, manager.tmpDir)
+	var path string
+	if pkg.DownloadUrl != "" {
+		path, err = manager.FetchFromDownloadURL(pkg, version, manager.tmpDir)
+	} else {
+		path, err = provider.FetchPackage(pkg, version, manager.tmpDir)
+	}
 	if err != nil {
 		return err
 	}
 
 	if pkg.ArchiveFormat != "" {
-		path, err = manager.extractPackage(&pkg, path)
+		path, err = manager.extractPackage(&pkg, version, path)
 		if err != nil {
 			return err
 		}
@@ -224,6 +230,34 @@ func (manager *Manager) Update() (err error) {
 		}
 	}
 	return nil
+}
+
+func (manager *Manager) FetchFromDownloadURL(pkg Package, version string, cacheDir string) (path string, err error) {
+	url := pkg.patternExpand(pkg.DownloadUrl, version)
+
+	resp, err := http.DefaultClient.Get(url)
+	if err != nil {
+		return path, err
+	}
+	defer resp.Body.Close()
+	var filename string
+	if pkg.ArchiveFormat != "" {
+		filename = fmt.Sprintf("%s.%s", pkg.Name, pkg.ArchiveFormat)
+	} else {
+		filename = pkg.Name
+	}
+
+	path = filepath.Join(cacheDir, filename)
+	file, err := os.Create(path)
+	if err != nil {
+		return path, err
+	}
+	defer file.Close()
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return path, err
+	}
+	return path, nil
 }
 
 func (manager *Manager) update(pkg *Package) (err error) {
@@ -260,13 +294,13 @@ func (manager *Manager) update(pkg *Package) (err error) {
 		manager.tmpDir = ""
 	}()
 
-	path, err := provider.FetchPackage(*pkg, manager.tmpDir)
+	path, err := provider.FetchPackage(*pkg, version, manager.tmpDir)
 	if err != nil {
 		return err
 	}
 
 	if pkg.ArchiveFormat != "" {
-		path, err = manager.extractPackage(pkg, path)
+		path, err = manager.extractPackage(pkg, version, path)
 		if err != nil {
 			return err
 		}
@@ -319,32 +353,32 @@ func (manager *Manager) install(pkg *Package, version string, sourceFile string)
 	return nil
 }
 
-func (manager *Manager) extractPackage(pkg *Package, sourceFile string) (string, error) {
+func (manager *Manager) extractPackage(pkg *Package, version string, sourceFile string) (string, error) {
 	manager.logger.Info().Msgf("extract package %s (format %s)", pkg.Name, pkg.ArchiveFormat)
 	switch pkg.ArchiveFormat {
 	case "tar":
-		return manager.extractTar(pkg, sourceFile)
+		return manager.extractTar(pkg, version, sourceFile)
 	case "tar.gz":
-		return manager.extractTarGZ(pkg, sourceFile)
+		return manager.extractTarGZ(pkg, version, sourceFile)
 	case "zip":
-		return manager.extractZip(pkg, sourceFile)
+		return manager.extractZip(pkg, version, sourceFile)
 	default:
 		return "", fmt.Errorf("unknown archive format %s", pkg.ArchiveFormat)
 	}
 }
 
-func (manager *Manager) extractTar(pkg *Package, sourcePath string) (string, error) {
+func (manager *Manager) extractTar(pkg *Package, version string, sourcePath string) (string, error) {
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
 		return "", err
 	}
 	defer sourceFile.Close()
-	return manager.extractTarReader(pkg, sourceFile)
+	return manager.extractTarReader(pkg, version, sourceFile)
 }
-func (manager *Manager) extractTarReader(pkg *Package, reader io.Reader) (string, error) {
+func (manager *Manager) extractTarReader(pkg *Package, version string, reader io.Reader) (string, error) {
 	tarReader := tar.NewReader(reader)
 	var outputPath string
-	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern))
+	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern, version))
 	if err != nil {
 		return outputPath, err
 	}
@@ -376,7 +410,7 @@ func (manager *Manager) extractTarReader(pkg *Package, reader io.Reader) (string
 	}
 }
 
-func (manager *Manager) extractTarGZ(pkg *Package, sourceFile string) (string, error) {
+func (manager *Manager) extractTarGZ(pkg *Package, version string, sourceFile string) (string, error) {
 	file, err := os.Open(sourceFile)
 	if err != nil {
 		return "", err
@@ -387,12 +421,12 @@ func (manager *Manager) extractTarGZ(pkg *Package, sourceFile string) (string, e
 		return "", err
 	}
 
-	return manager.extractTarReader(pkg, reader)
+	return manager.extractTarReader(pkg, version, reader)
 }
 
-func (manager *Manager) extractZip(pkg *Package, sourceFile string) (string, error) {
+func (manager *Manager) extractZip(pkg *Package, version string, sourceFile string) (string, error) {
 	var outputPath string
-	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern))
+	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern, version))
 	if err != nil {
 		return outputPath, err
 	}
