@@ -66,8 +66,7 @@ func (provider *GithubProvider) FetchPackage(pkg Package, version string, cacheD
 	for _, asset := range release.Assets {
 		name := asset.GetName()
 		provider.logger.Debug().Msgf("try asset %s", name)
-		nameLower := strings.ToLower(name)
-		if assetPattern.Match([]byte(nameLower)) {
+		if assetPattern.Match([]byte(name)) {
 			url := asset.GetBrowserDownloadURL()
 			provider.logger.Debug().Msgf("get asset from %s", url)
 			req, err := provider.client.NewRequest("GET", url, nil)
