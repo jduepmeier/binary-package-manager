@@ -1,6 +1,6 @@
 module bpm
 
-go 1.15
+go 1.17
 
 require (
 	github.com/creasty/defaults v1.5.2
@@ -8,6 +8,8 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.26.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
