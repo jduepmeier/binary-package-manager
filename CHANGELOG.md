@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.1 (2021-11-18)
+
+* match asset pattern case sensitive
+
 ## 0.1.0 (2021-11-18)
 
 * add version command
