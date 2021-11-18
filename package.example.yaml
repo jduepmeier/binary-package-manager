@@ -1,0 +1,17 @@
+---
+# name of the package
+name: bpm
+# provider for the package (only github is currently supported)
+provider: github.com
+# url to the package
+url: github.com/jduepmeier/binary-package-manager
+# goarch to download
+goarch: x86_64
+# goos to download
+goos: Linux
+#
+# this pattern will be used to find the correct file to download.
+asset_pattern: "${goos}_${goarch}.tar.gz"
+# archive format for the package.
+# If empty the downloaded file is the binary
+archive_format: tar.gz
