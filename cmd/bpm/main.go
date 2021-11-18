@@ -8,6 +8,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var (
+	build = "dev"
+)
+
 type opts struct {
 	LogLevel string `short:"l" long:"loglevel" description:"loglevel to set"`
 	Config   string `short:"c" long:"config" description:"path to config"`
@@ -46,6 +50,9 @@ func run() int {
 	}
 	_, err := parser.Parse()
 	if err != nil {
+		if err == flags.ErrHelp {
+			return EXIT_SUCCESS
+		}
 		return EXIT_CONFIG_ERROR
 	}
 	level, err := zerolog.ParseLevel(opts.LogLevel)
