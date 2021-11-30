@@ -163,6 +163,31 @@ func (manager *Manager) Add(name string, url string) error {
 	return dumpYaml(filepath.Join(manager.Config.PackagesFolder, name+".yaml"), &pkg)
 }
 
+func (manager *Manager) Outdated() error {
+	for _, pkg := range manager.Packages {
+		logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
+		currentVersion, ok := manager.StateFile.Packages[pkg.Name]
+		if !ok || currentVersion == "" {
+			continue
+		}
+		provider, ok := manager.Providers[pkg.Provider]
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrProviderNotFound, pkg.Provider)
+		}
+		version, err := provider.GetLatest(pkg)
+		if err != nil {
+			return err
+		}
+		if version == currentVersion {
+			continue
+		}
+		logger.Info().Msgf("find package version %s", version)
+		fmt.Printf("%s: %s => %s", pkg.Name, currentVersion, version)
+		fmt.Printf("\n")
+	}
+	return nil
+}
+
 func (manager *Manager) Install(name string, force bool) (err error) {
 	pkg, ok := manager.Packages[name]
 	if !ok {

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* add outdated command
+
 ## 0.1.1 (2021-11-18)
 
 * match asset pattern case sensitive
