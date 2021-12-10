@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -21,6 +22,10 @@ const (
 	StateFileVersion = 1
 )
 
+type SchemaVersion struct {
+	Version int
+}
+
 type Manager struct {
 	Config    *Config
 	StateFile *StateFile
@@ -30,7 +35,7 @@ type Manager struct {
 	tmpDir    string
 }
 
-func NewManager(configPath string, logger zerolog.Logger) (*Manager, error) {
+func NewManager(configPath string, logger zerolog.Logger, migrate bool) (*Manager, error) {
 	config, err := ReadConfig(configPath)
 	if err != nil {
 		return nil, err
@@ -50,8 +55,10 @@ func NewManager(configPath string, logger zerolog.Logger) (*Manager, error) {
 	if err != nil {
 		return manager, err
 	}
-	err = manager.LoadState()
 
+	if !migrate {
+		err = manager.LoadState()
+	}
 	return manager, err
 }
 
@@ -155,9 +162,11 @@ func (manager *Manager) Add(name string, url string) error {
 	splitted := strings.Split(url, "/")
 	provider := splitted[0]
 	pkg := Package{
-		Name:     name,
-		URL:      url,
-		Provider: provider,
+		PackageV2: PackageV2{
+			Name:     name,
+			URL:      url,
+			Provider: provider,
+		},
 	}
 	manager.Packages[name] = pkg
 	return dumpYaml(filepath.Join(manager.Config.PackagesFolder, name+".yaml"), &pkg)
@@ -481,4 +490,112 @@ func (manager *Manager) extractZip(pkg *Package, version string, sourceFile stri
 	}
 
 	return outputPath, fmt.Errorf("archive does not contain a file matching pattern %s", pkg.BinPattern)
+}
+
+func (manager *Manager) migrateStateFile() error {
+	manager.logger.Debug().Msgf("migrate state file")
+	version := SchemaVersion{
+		Version: 1,
+	}
+	stateFilePath := filepath.Join(manager.Config.StateFolder, "state.yaml")
+	err := loadYaml(stateFilePath, &version)
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if version.Version == StateFileVersion {
+		manager.logger.Debug().Msgf("no state file migration needed")
+		return nil
+	}
+
+	return fmt.Errorf("%w: %d", ErrUnknownStateFileVersion, version.Version)
+}
+
+func (manager *Manager) migratePackageFile(path string) (err error) {
+	manager.logger.Debug().Msgf("migrate package file %s", path)
+
+	version := SchemaVersion{
+		Version: 1,
+	}
+	err = loadYaml(path, &version)
+	if os.IsNotExist(err) {
+		manager.logger.Debug().Msgf("file %s does not exist, no migration needed", path)
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if version.Version == PackageSchemaVersion {
+		manager.logger.Debug().Msgf("no package file migration needed for %s", path)
+		return nil
+	}
+	var pkg Package
+
+	switch version.Version {
+	case 1:
+		manager.logger.Debug().Msgf("migrate 1 to %d", PackageSchemaVersion)
+		pkgV1 := PackageV1{}
+		err = loadYaml(path, &pkgV1)
+		if err != nil {
+			return err
+		}
+		pkg = Package{
+			PackageV2: PackageV2{
+				SchemaVersion: 2,
+				Name: pkgV1.Name,
+				Provider: pkgV1.Provider,
+				URL: pkgV1.URL,
+				GOOS: make(map[string]string),
+				GOARCH: make(map[string]string),
+				AssetPattern: pkgV1.AssetPattern,
+				ArchiveFormat: pkgV1.ArchiveFormat,
+				BinPattern: pkgV1.BinPattern,
+				DownloadUrl: pkgV1.DownloadUrl,
+			},
+		}
+		goos := runtime.GOOS
+		goarch := runtime.GOARCH
+		pkg.GOOS[goos] = pkgV1.GOOS
+		pkg.GOARCH[goarch] = pkgV1.GOARCH
+	default:
+		return fmt.Errorf("%w: %d", ErrUnknownPackageFileVersion, version.Version)
+	}
+
+	return dumpYaml(path, &pkg)
+}
+
+func (manager *Manager) migratePackageFiles() (err error) {
+	err = filepath.Walk(manager.Config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(info.Name(), ".yaml") {
+			err = manager.migratePackageFile(path)
+		}
+		return err
+	})
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		manager.logger.Warn().Msgf("got error from loading packages: %s", err)
+	}
+	return err
+}
+
+func (manager *Manager) Migrate() error {
+	err := manager.migrateStateFile()
+	if err != nil {
+		return err
+	}
+	err = manager.migratePackageFiles()
+	if err != nil {
+		return err
+	}
+	return manager.LoadState()
 }

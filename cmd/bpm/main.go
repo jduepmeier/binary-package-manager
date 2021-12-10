@@ -63,14 +63,19 @@ func run() int {
 	logger = logger.Level(level)
 	logger.Debug().Msg("starting up")
 
-	manager, err := bpm.NewManager(opts.Config, logger)
+	cmd := subCommands[parser.Active.Name]
+	migrate := false
+	if parser.Active.Name == "migrate" {
+		logger.Info().Msgf("migrate active")
+		migrate = true
+	}
+	manager, err := bpm.NewManager(opts.Config, logger, migrate)
 	if err != nil {
 		logger.Err(err).Msg("cannot create manager instance")
 		return EXIT_CONFIG_ERROR
 	}
 	manager.Config.Quiet = opts.Quiet
 
-	cmd := subCommands[parser.Active.Name]
 
 	logger.Debug().Msgf("execute command %s", parser.Active.Name)
 	err = cmd.Run(logger, manager)
