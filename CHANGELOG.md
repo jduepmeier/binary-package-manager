@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* allow to update only named packages
 * add outdated command
 * add migrate command
 * convert goos and goarch to maps to use same package definition on different platforms. This needs schema migration (package schema is now 2).

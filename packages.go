@@ -22,16 +22,16 @@ type Package struct {
 }
 
 type PackageV2 struct {
-	SchemaVersion int    `yaml:"schema_version" default:"1"`
-	Name          string `yaml:"name"`
-	Provider      string `yaml:"provider"`
-	URL           string `yaml:"url"`
+	SchemaVersion int               `yaml:"schema_version" default:"1"`
+	Name          string            `yaml:"name"`
+	Provider      string            `yaml:"provider"`
+	URL           string            `yaml:"url"`
 	GOOS          map[string]string `yaml:"goos"`
 	GOARCH        map[string]string `yaml:"goarch"`
-	AssetPattern  string `yaml:"asset_pattern" default:"${goos}-${goarch}"`
-	ArchiveFormat string `yaml:"archive_format" default:""`
-	BinPattern    string `yaml:"bin_pattern" default:"${name}"`
-	DownloadUrl   string `yaml:"download_url" default:""`
+	AssetPattern  string            `yaml:"asset_pattern" default:"${goos}-${goarch}"`
+	ArchiveFormat string            `yaml:"archive_format" default:""`
+	BinPattern    string            `yaml:"bin_pattern" default:"${name}"`
+	DownloadUrl   string            `yaml:"download_url" default:""`
 }
 
 type PackageV1 struct {
@@ -48,7 +48,7 @@ type PackageV1 struct {
 }
 
 func (pkg *Package) SetDefaults() {
-	pkg.GOOS = make(map[string]string) //strings.ToLower(runtime.GOOS)
+	pkg.GOOS = make(map[string]string)   //strings.ToLower(runtime.GOOS)
 	pkg.GOARCH = make(map[string]string) //strings.ToLower(runtime.GOARCH)
 }
 

@@ -10,17 +10,21 @@ import (
 type UpdateSubCommand struct {
 	Opts UpdateSubCommandOpts
 }
-type UpdateSubCommandOpts struct{}
+type UpdateSubCommandOpts struct {
+	Args struct {
+		Packages []string
+	} `positional-args:"true"`
+}
 
 func init() {
 	subCommands["update"] = &UpdateSubCommand{}
 }
 
 func (cmd *UpdateSubCommand) AddCommand(parser *flags.Parser) error {
-	_, err := parser.AddCommand("update", "updates all package", "updates all packages", &cmd.Opts)
+	_, err := parser.AddCommand("update", "updates packages", "updates packages. If no package is given update all", &cmd.Opts)
 	return err
 }
 
 func (cmd *UpdateSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
-	return manager.Update()
+	return manager.Update(cmd.Opts.Args.Packages)
 }

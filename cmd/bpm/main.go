@@ -76,7 +76,6 @@ func run() int {
 	}
 	manager.Config.Quiet = opts.Quiet
 
-
 	logger.Debug().Msgf("execute command %s", parser.Active.Name)
 	err = cmd.Run(logger, manager)
 	if err != nil {

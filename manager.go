@@ -255,12 +255,23 @@ func (manager *Manager) Install(name string, force bool) (err error) {
 	return nil
 }
 
-func (manager *Manager) Update() (err error) {
+func (manager *Manager) inPackageList(pkgName string, pkgNames []string) bool {
+	for _, name := range pkgNames {
+		if pkgName == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (manager *Manager) Update(packageNames []string) (err error) {
 	for _, pkg := range manager.Packages {
-		err := manager.update(&pkg)
-		if err != nil {
-			logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
-			logger.Error().Msgf("cannot update package: %s. Skipping...", err)
+		if manager.inPackageList(pkg.Name, packageNames) {
+			err := manager.update(&pkg)
+			if err != nil {
+				logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
+				logger.Error().Msgf("cannot update package: %s. Skipping...", err)
+			}
 		}
 	}
 	return nil
@@ -327,8 +338,12 @@ func (manager *Manager) update(pkg *Package) (err error) {
 		os.RemoveAll(manager.tmpDir)
 		manager.tmpDir = ""
 	}()
-
-	path, err := provider.FetchPackage(*pkg, version, manager.tmpDir)
+	var path string
+	if pkg.DownloadUrl != "" {
+		path, err = manager.FetchFromDownloadURL(*pkg, version, manager.tmpDir)
+	} else {
+		path, err = provider.FetchPackage(*pkg, version, manager.tmpDir)
+	}
 	if err != nil {
 		return err
 	}
@@ -544,15 +559,15 @@ func (manager *Manager) migratePackageFile(path string) (err error) {
 		pkg = Package{
 			PackageV2: PackageV2{
 				SchemaVersion: 2,
-				Name: pkgV1.Name,
-				Provider: pkgV1.Provider,
-				URL: pkgV1.URL,
-				GOOS: make(map[string]string),
-				GOARCH: make(map[string]string),
-				AssetPattern: pkgV1.AssetPattern,
+				Name:          pkgV1.Name,
+				Provider:      pkgV1.Provider,
+				URL:           pkgV1.URL,
+				GOOS:          make(map[string]string),
+				GOARCH:        make(map[string]string),
+				AssetPattern:  pkgV1.AssetPattern,
 				ArchiveFormat: pkgV1.ArchiveFormat,
-				BinPattern: pkgV1.BinPattern,
-				DownloadUrl: pkgV1.DownloadUrl,
+				BinPattern:    pkgV1.BinPattern,
+				DownloadUrl:   pkgV1.DownloadUrl,
 			},
 		}
 		goos := runtime.GOOS
