@@ -37,11 +37,18 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 		} else {
 			client.Transport = newBasicAuthTransport(githubConfig.Username, githubConfig.Token, nil)
 		}
+		logger.Debug().Msgf("use provided username %s", githubConfig.Username)
 	}
-	return &GithubProvider{
+	provider := &GithubProvider{
 		client: github.NewClient(client),
 		logger: logger,
 	}
+	limits, _, err := provider.client.RateLimits(context.Background())
+	if err != nil {
+		logger.Err(err).Msgf("cannot get rate limits")
+	}
+	logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
+	return provider
 }
 
 func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.RepositoryRelease, error) {
