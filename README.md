@@ -47,6 +47,18 @@ bpm update
 ```
 
 
+### Github rate-limits
+
+Github has a rate-limiting in place. To get a higher limit use an access token (https://github.com/settings/tokens).
+The access token does not need any permissions except a private repo is fetched.
+
+```yaml
+# add to config file (~/.config/bpm/config.yaml)
+github:
+  username: <github-username>
+  token: <created-token>
+```
+
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md).
