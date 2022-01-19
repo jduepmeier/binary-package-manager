@@ -17,10 +17,11 @@ var (
 )
 
 type Config struct {
-	BinFolder      string `yaml:"bin_folder"`
-	StateFolder    string `yaml:"state_folder"`
-	PackagesFolder string `yaml:"packages_folder"`
-	Quiet          bool   `yaml:"quiet"`
+	BinFolder      string       `yaml:"bin_folder"`
+	StateFolder    string       `yaml:"state_folder"`
+	PackagesFolder string       `yaml:"packages_folder"`
+	Quiet          bool         `yaml:"quiet"`
+	Github         GithubConfig `yaml:"github"`
 }
 
 func ReadConfig(path string) (*Config, error) {

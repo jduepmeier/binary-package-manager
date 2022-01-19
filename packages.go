@@ -83,7 +83,7 @@ type StateFile struct {
 	Packages map[string]string `yaml:"packages"`
 }
 
-type NewPackageProviderFunc = func(logger zerolog.Logger) PackageProvider
+type NewPackageProviderFunc = func(logger zerolog.Logger, config *Config) PackageProvider
 
 var (
 	PackageProviders = make(map[string]NewPackageProviderFunc)

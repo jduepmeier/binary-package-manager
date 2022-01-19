@@ -1,3 +1,5 @@
 ---
 bin_folder: ~/bin
 state_folder: ~/.config/bpm
+github:
+  token: github-token

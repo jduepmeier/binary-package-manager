@@ -3,6 +3,7 @@ package bpm
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,6 +12,11 @@ import (
 	"github.com/google/go-github/v36/github"
 	"github.com/rs/zerolog"
 )
+
+type GithubConfig struct {
+	Username string `yaml:"username"`
+	Token    string `yaml:"token"`
+}
 
 type GithubProvider struct {
 	client *github.Client
@@ -21,10 +27,20 @@ func init() {
 	PackageProviders["github.com"] = NewGithubProvider
 }
 
-func NewGithubProvider(logger zerolog.Logger) PackageProvider {
+func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
+	logger = logger.With().Str("module", "github").Logger()
+	githubConfig := config.Github
+	client := &http.Client{}
+	if githubConfig.Username != "" {
+		if githubConfig.Token == "" {
+			logger.Error().Msgf("If github username is set a token must be set!")
+		} else {
+			client.Transport = newBasicAuthTransport(githubConfig.Username, githubConfig.Token, nil)
+		}
+	}
 	return &GithubProvider{
-		client: github.NewClient(nil),
-		logger: logger.With().Str("module", "github").Logger(),
+		client: github.NewClient(client),
+		logger: logger,
 	}
 }
 

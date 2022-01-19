@@ -49,7 +49,7 @@ func NewManager(configPath string, logger zerolog.Logger, migrate bool) (*Manage
 	}
 
 	for name, providerFunc := range PackageProviders {
-		manager.Providers[name] = providerFunc(manager.logger)
+		manager.Providers[name] = providerFunc(manager.logger, config)
 	}
 	err = manager.Init()
 	if err != nil {
