@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bpm"
 	"testing"
 )
 
@@ -16,6 +15,6 @@ func TestVersion(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		runTest(t, &testConfig, &bpm.DummyManager{})
+		runTest(t, &testConfig)
 	}
 }

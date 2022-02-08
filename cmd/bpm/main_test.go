@@ -9,40 +9,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testFunc func(t *testing.T, buf *bytes.Buffer) bool
+type testFunc func(t *testing.T, manager bpm.TestManager, buf *bytes.Buffer) bool
 type testConfig struct {
 	name     string
 	args     []string
 	message  string
 	exitCode int
 	testFunc testFunc
+	manager  bpm.TestManager
 }
 
-func emptyTestFunc(t *testing.T, buf *bytes.Buffer) bool { return true }
+func emptyTestFunc(t *testing.T, manager bpm.TestManager, buf *bytes.Buffer) bool { return true }
 
 func testOutputContains(contains string) testFunc {
-	return func(t *testing.T, buf *bytes.Buffer) bool {
+	return func(t *testing.T, manager bpm.TestManager, buf *bytes.Buffer) bool {
 		return assert.Contains(t, buf.String(), contains)
 	}
 }
 
-func runTest(t *testing.T, testConfig *testConfig, manager bpm.TestManager) {
+func runTest(t *testing.T, testConfig *testConfig) {
 	t.Run(testConfig.name, func(t *testing.T) {
-		newManager := func(configPath string, logger zerolog.Logger, migrate bool) (bpm.Manager, error) {
-			return manager, nil
+		if testConfig.manager == nil {
+			testConfig.manager = &bpm.DummyManager{}
 		}
-		manager.SetT(t)
+		newManager := func(configPath string, logger zerolog.Logger, migrate bool) (bpm.Manager, error) {
+			return testConfig.manager, nil
+		}
+		testConfig.manager.SetT(t)
 		var buf bytes.Buffer
 		exitCode := run(newManager, &buf, &buf, testConfig.args)
 		if assert.Equal(t, testConfig.exitCode, exitCode, testConfig.message, &buf) {
-			testConfig.testFunc(t, &buf)
+			testConfig.testFunc(t, testConfig.manager, &buf)
 		}
 		t.Logf("output: %s", buf.String())
 	})
 }
 
 func TestMain(t *testing.T) {
-	manager := &bpm.DummyManager{}
 	tests := []testConfig{
 		{
 			name:     "empty args",
@@ -77,13 +80,13 @@ func TestMain(t *testing.T) {
 			exitCode: EXIT_SUCCESS,
 			message:  "init is a valid command",
 			args:     []string{"-l", "debug", "init"},
-			testFunc: func(t *testing.T, buf *bytes.Buffer) bool {
-				return assert.Equal(t, 1, manager.GetCounter("Init"), "manager.Init should be called one time")
+			testFunc: func(t *testing.T, manager bpm.TestManager, buf *bytes.Buffer) bool {
+				realManager := manager.(*bpm.DummyManager)
+				return assert.Equal(t, 1, realManager.GetCounter("Init"), "manager.Init should be called one time")
 			},
 		},
 	}
 	for _, testConfig := range tests {
-		runTest(t, &testConfig, manager)
-		manager.ResetCounters()
+		runTest(t, &testConfig)
 	}
 }

@@ -28,9 +28,6 @@ type testInfoConfig struct {
 
 func TestInfo(t *testing.T) {
 	cmd := "info"
-	manager := &dummyInfoManager{
-		DummyManager: &bpm.DummyManager{},
-	}
 	tests := []testInfoConfig{
 		{
 			testConfig: testConfig{
@@ -53,7 +50,10 @@ func TestInfo(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		manager.infoTestFunc = testConfig.infoTestFunc
-		runTest(t, &testConfig.testConfig, manager)
+		testConfig.testConfig.manager = &dummyInfoManager{
+			DummyManager: &bpm.DummyManager{},
+			infoTestFunc: testConfig.infoTestFunc,
+		}
+		runTest(t, &testConfig.testConfig)
 	}
 }

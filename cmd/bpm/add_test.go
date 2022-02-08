@@ -27,9 +27,6 @@ type testAddConfig struct {
 }
 
 func TestAdd(t *testing.T) {
-	manager := &dummyAddManager{
-		DummyManager: &bpm.DummyManager{},
-	}
 	tests := []testAddConfig{
 		{
 			testConfig: testConfig{
@@ -61,7 +58,10 @@ func TestAdd(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		manager.addTestFunc = testConfig.addTestFunc
-		runTest(t, &testConfig.testConfig, manager)
+		testConfig.testConfig.manager = &dummyAddManager{
+			DummyManager: &bpm.DummyManager{},
+			addTestFunc:  testConfig.addTestFunc,
+		}
+		runTest(t, &testConfig.testConfig)
 	}
 }

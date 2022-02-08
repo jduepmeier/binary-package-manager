@@ -28,9 +28,6 @@ type testInstallConfig struct {
 
 func TestInstall(t *testing.T) {
 	cmd := "install"
-	manager := &dummyInstallManager{
-		DummyManager: &bpm.DummyManager{},
-	}
 	tests := []testInstallConfig{
 		{
 			testConfig: testConfig{
@@ -66,7 +63,10 @@ func TestInstall(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		manager.installTestFunc = testConfig.installTestFunc
-		runTest(t, &testConfig.testConfig, manager)
+		testConfig.testConfig.manager = &dummyInstallManager{
+			DummyManager:    &bpm.DummyManager{},
+			installTestFunc: testConfig.installTestFunc,
+		}
+		runTest(t, &testConfig.testConfig)
 	}
 }

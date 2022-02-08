@@ -28,9 +28,6 @@ type testUpdateConfig struct {
 
 func TestUpdate(t *testing.T) {
 	cmd := "update"
-	manager := &dummyUpdateManager{
-		DummyManager: &bpm.DummyManager{},
-	}
 	tests := []testUpdateConfig{
 		{
 			testConfig: testConfig{
@@ -56,7 +53,10 @@ func TestUpdate(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		manager.updateTestFunc = testConfig.updateTestFunc
-		runTest(t, &testConfig.testConfig, manager)
+		testConfig.testConfig.manager = &dummyUpdateManager{
+			DummyManager:   &bpm.DummyManager{},
+			updateTestFunc: testConfig.updateTestFunc,
+		}
+		runTest(t, &testConfig.testConfig)
 	}
 }

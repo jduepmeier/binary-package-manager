@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bpm"
 	"testing"
 )
 
@@ -15,6 +14,6 @@ func TestMigrate(t *testing.T) {
 		},
 	}
 	for _, testConfig := range tests {
-		runTest(t, &testConfig, &bpm.DummyManager{})
+		runTest(t, &testConfig)
 	}
 }
