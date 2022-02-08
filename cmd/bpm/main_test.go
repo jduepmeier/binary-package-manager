@@ -19,11 +19,19 @@ type testConfig struct {
 }
 
 func emptyTestFunc(t *testing.T, buf *bytes.Buffer) bool { return true }
-func runTest(t *testing.T, testConfig *testConfig, manager bpm.Manager) {
+
+func testOutputContains(contains string) testFunc {
+	return func(t *testing.T, buf *bytes.Buffer) bool {
+		return assert.Contains(t, buf.String(), contains)
+	}
+}
+
+func runTest(t *testing.T, testConfig *testConfig, manager bpm.TestManager) {
 	t.Run(testConfig.name, func(t *testing.T) {
 		newManager := func(configPath string, logger zerolog.Logger, migrate bool) (bpm.Manager, error) {
 			return manager, nil
 		}
+		manager.SetT(t)
 		var buf bytes.Buffer
 		exitCode := run(newManager, &buf, &buf, testConfig.args)
 		if assert.Equal(t, testConfig.exitCode, exitCode, testConfig.message, &buf) {
@@ -41,6 +49,13 @@ func TestMain(t *testing.T) {
 			exitCode: EXIT_CONFIG_ERROR,
 			message:  "empty args should fail with missing command",
 			args:     []string{},
+			testFunc: emptyTestFunc,
+		},
+		{
+			name:     "wrong command",
+			exitCode: EXIT_CONFIG_ERROR,
+			message:  "command should not exist",
+			args:     []string{"wrong-command"},
 			testFunc: emptyTestFunc,
 		},
 		{

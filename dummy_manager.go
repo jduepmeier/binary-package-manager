@@ -1,14 +1,28 @@
 package bpm
 
-import "github.com/rs/zerolog"
+import (
+	"testing"
+
+	"github.com/rs/zerolog"
+)
 
 type DummyManager struct {
 	config   *Config
+	T        *testing.T
 	counters map[string]int
+}
+
+type TestManager interface {
+	Manager
+	SetT(t *testing.T)
 }
 
 func NewDummyManager(configPath string, logger zerolog.Logger, migrate bool) (Manager, error) {
 	return &DummyManager{}, nil
+}
+
+func (manager *DummyManager) SetT(t *testing.T) {
+	manager.T = t
 }
 
 func (manager *DummyManager) bumpCounter(name string) {
