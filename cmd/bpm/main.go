@@ -20,7 +20,7 @@ type opts struct {
 
 type SubCommand interface {
 	AddCommand(parser *flags.Parser) error
-	Run(logger zerolog.Logger, manager *bpm.Manager) error
+	Run(logger zerolog.Logger, manager bpm.Manager) error
 }
 
 var (
@@ -33,7 +33,7 @@ const (
 	EXIT_CONFIG_ERROR = 2
 )
 
-func run() int {
+func run(managerCreate bpm.ManagerCreateFunc, args []string) int {
 	opts := opts{
 		LogLevel: "warn",
 		Config:   "",
@@ -74,7 +74,7 @@ func run() int {
 		logger.Err(err).Msg("cannot create manager instance")
 		return EXIT_CONFIG_ERROR
 	}
-	manager.Config.Quiet = opts.Quiet
+	manager.Config().Quiet = opts.Quiet
 
 	logger.Debug().Msgf("execute command %s", parser.Active.Name)
 	err = cmd.Run(logger, manager)
@@ -93,5 +93,5 @@ func run() int {
 }
 
 func main() {
-	os.Exit(run())
+	os.Exit(run(bpm.NewManager, os.Args))
 }

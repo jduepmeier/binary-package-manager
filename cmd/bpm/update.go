@@ -25,6 +25,6 @@ func (cmd *UpdateSubCommand) AddCommand(parser *flags.Parser) error {
 	return err
 }
 
-func (cmd *UpdateSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
+func (cmd *UpdateSubCommand) Run(logger zerolog.Logger, manager bpm.Manager) error {
 	return manager.Update(cmd.Opts.Args.Packages)
 }
