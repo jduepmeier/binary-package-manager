@@ -2,6 +2,9 @@ package main
 
 import (
 	"bpm"
+	"errors"
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -33,14 +36,14 @@ const (
 	EXIT_CONFIG_ERROR = 2
 )
 
-func run(managerCreate bpm.ManagerCreateFunc, args []string) int {
+func run(managerCreateFunc bpm.ManagerCreateFunc, parserOut io.Writer, loggerOut io.Writer, args []string) int {
 	opts := opts{
 		LogLevel: "warn",
 		Config:   "",
 		Quiet:    false,
 	}
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	parser := flags.NewParser(&opts, flags.Default)
+	logger := zerolog.New(loggerOut).With().Timestamp().Logger()
+	parser := flags.NewParser(&opts, flags.PassDoubleDash|flags.HelpFlag)
 	for _, cmd := range subCommands {
 		err := cmd.AddCommand(parser)
 		if err != nil {
@@ -48,11 +51,17 @@ func run(managerCreate bpm.ManagerCreateFunc, args []string) int {
 			return EXIT_CONFIG_ERROR
 		}
 	}
-	_, err := parser.Parse()
+	_, err := parser.ParseArgs(args)
 	if err != nil {
-		if err == flags.ErrHelp {
-			return EXIT_SUCCESS
+		var flagsErr *flags.Error
+		if errors.As(err, &flagsErr) {
+			if flagsErr.Type == flags.ErrHelp {
+				parser.WriteHelp(parserOut)
+				return EXIT_SUCCESS
+			}
 		}
+		fmt.Fprintf(parserOut, "%s\n", err)
+		parser.WriteHelp(parserOut)
 		return EXIT_CONFIG_ERROR
 	}
 	level, err := zerolog.ParseLevel(opts.LogLevel)
@@ -69,7 +78,7 @@ func run(managerCreate bpm.ManagerCreateFunc, args []string) int {
 		logger.Info().Msgf("migrate active")
 		migrate = true
 	}
-	manager, err := bpm.NewManager(opts.Config, logger, migrate)
+	manager, err := managerCreateFunc(opts.Config, logger, migrate)
 	if err != nil {
 		logger.Err(err).Msg("cannot create manager instance")
 		return EXIT_CONFIG_ERROR
@@ -93,5 +102,5 @@ func run(managerCreate bpm.ManagerCreateFunc, args []string) int {
 }
 
 func main() {
-	os.Exit(run(bpm.NewManager, os.Args))
+	os.Exit(run(bpm.NewManager, os.Stderr, os.Stderr, os.Args[1:]))
 }
