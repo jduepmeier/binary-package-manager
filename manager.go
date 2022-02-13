@@ -191,9 +191,10 @@ func (manager *ManagerImpl) Add(name string, url string) error {
 	provider := splitted[0]
 	pkg := Package{
 		PackageV2: PackageV2{
-			Name:     name,
-			URL:      url,
-			Provider: provider,
+			SchemaVersion: PackageSchemaVersion,
+			Name:          name,
+			URL:           url,
+			Provider:      provider,
 		},
 	}
 	manager.Packages[name] = pkg

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -498,6 +499,28 @@ func TestManagerInstall(t *testing.T) {
 		}
 		return err
 	})
+}
+
+func TestManagerAdd(t *testing.T) {
+	manager := getDummyManagerImpl(t)
+	pkgName := "testPkg"
+	providerName := "dummy"
+	testUrl := fmt.Sprintf("%s/test", providerName)
+	err := manager.Add(pkgName, testUrl)
+	assert.NoError(t, err, "add should not return an error")
+	pkgPath := path.Join(manager.config.PackagesFolder, fmt.Sprintf("%s.yaml", pkgName))
+	if assert.FileExists(t, pkgPath, "manager.Add should have created a package file") {
+		pkg := Package{}
+		content, err := ioutil.ReadFile(pkgPath)
+		if err == nil {
+			t.Logf("package content: %s", string(content))
+		}
+		err = loadYaml(pkgPath, &pkg)
+		if assert.NoError(t, err, "the package should be valid yaml and can be loaded") {
+			assert.Equal(t, pkgName, pkg.Name)
+			assert.Equal(t, providerName, pkg.Provider)
+		}
+	}
 }
 
 func TestManagerOutdated(t *testing.T) {
