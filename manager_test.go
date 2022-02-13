@@ -208,7 +208,19 @@ func TestManagerInit(t *testing.T) {
 			assert.Error(t, err, "Init() must return an error because a path is a file")
 		})
 	}
+}
 
+func TestManagerSaveState(t *testing.T) {
+	manager := getDummyManagerImpl(t)
+	manager.StateFile = getDummyState()
+	err := manager.SaveState()
+	assert.NoError(t, err, "save state should work without problems")
+	statePath := path.Join(manager.config.StateFolder, "state.yaml")
+	assert.FileExists(t, statePath, "the state file should now exist")
+	newState := StateFile{}
+	err = loadYaml(statePath, &newState)
+	assert.NoError(t, err, "state should be loaded without problems")
+	assert.EqualValues(t, manager.StateFile, &newState, "loaded state must be the same as dumped state")
 }
 
 func TestManagerInfo(t *testing.T) {
