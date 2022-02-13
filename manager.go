@@ -58,7 +58,7 @@ type ManagerImpl struct {
 func NewManager(configPath string, logger zerolog.Logger, migrate bool) (Manager, error) {
 	config, err := ReadConfig(configPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrManagerCreate, err)
 	}
 
 	manager := &ManagerImpl{
@@ -74,11 +74,14 @@ func NewManager(configPath string, logger zerolog.Logger, migrate bool) (Manager
 	}
 	err = manager.Init()
 	if err != nil {
-		return manager, err
+		return manager, fmt.Errorf("%w: %s", ErrManagerCreate, err)
 	}
 
 	if !migrate {
 		err = manager.LoadState()
+		if err != nil {
+			err = fmt.Errorf("%w: %s", ErrManagerCreate, err)
+		}
 	}
 	return manager, err
 }

@@ -18,4 +18,5 @@ var (
 	ErrUnknownPackageFileVersion = errors.New("unknown package file version")
 	ErrConfigLoad                = errors.New("cannot load config file")
 	ErrYamlDump                  = errors.New("cannot dump content as yaml")
+	ErrManagerCreate             = errors.New("cannot create new manager")
 )

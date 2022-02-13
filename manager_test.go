@@ -24,6 +24,25 @@ func getDummyState() *StateFile {
 	}
 }
 
+func writeTestConfig(t *testing.T, config *Config) string {
+	testDir := t.TempDir()
+	configPath := path.Join(testDir, "config.yaml")
+	err := dumpYaml(configPath, &config)
+	if err != nil {
+		t.Fatalf("could not create config file: %s", err)
+	}
+	return configPath
+}
+func writeTestState(t *testing.T, state *StateFile) string {
+	testDir := t.TempDir()
+	statePath := path.Join(testDir, "state.yaml")
+	err := dumpYaml(statePath, &state)
+	if err != nil {
+		t.Fatalf("could not create state file: %s", err)
+	}
+	return statePath
+}
+
 func generateTestConfig(t *testing.T) (string, *Config, *StateFile) {
 	testDir := t.TempDir()
 	state := getDummyState()
@@ -36,11 +55,7 @@ func generateTestConfig(t *testing.T) (string, *Config, *StateFile) {
 		PackagesFolder: path.Join(testDir, "packages"),
 		BinFolder:      path.Join(testDir, "bin"),
 	}
-	configPath := path.Join(testDir, "config.yaml")
-	err = dumpYaml(configPath, &config)
-	if err != nil {
-		t.Fatalf("could not create config file: %s", err)
-	}
+	configPath := writeTestConfig(t, config)
 
 	return configPath, config, state
 }
@@ -119,6 +134,81 @@ func TestNewManager(t *testing.T) {
 			assert.EqualValues(t, *pkg, managerReal.Packages[pkg.Name])
 		}
 	})
+
+	t.Run("missing-config", func(t *testing.T) {
+		configPath := "/tmp/missing-config"
+		_, err := NewManager(configPath, logger, false)
+		assert.ErrorIs(t, err, ErrManagerCreate)
+	})
+
+	t.Run("broken-init", func(t *testing.T) {
+		tmpFile := path.Join(t.TempDir(), "file.yaml")
+		err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0644)
+		if err != nil {
+			t.Fatalf("cannot write tmpFile %s: %s", tmpFile, err)
+		}
+		config := &Config{
+			StateFolder: tmpFile,
+		}
+		configPath := writeTestConfig(t, config)
+		_, err = NewManager(configPath, logger, false)
+		assert.ErrorIs(t, err, ErrManagerCreate)
+	})
+
+	t.Run("broken-load-state", func(t *testing.T) {
+		state := &StateFile{
+			Version: 0,
+		}
+		statePath := writeTestState(t, state)
+		config := getTestTmpDirConfig(t)
+		config.StateFolder = path.Dir(statePath)
+		configPath := writeTestConfig(t, config)
+		_, err := NewManager(configPath, logger, false)
+		assert.ErrorIs(t, err, ErrManagerCreate)
+		_, err = NewManager(configPath, logger, true)
+		assert.NoError(t, err, "in migration mode the LoadState function should not be called")
+	})
+}
+
+func TestManagerInit(t *testing.T) {
+	tmpFile := path.Join(t.TempDir(), "file.yaml")
+	err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0644)
+	if err != nil {
+		t.Fatalf("cannot write tmpFile %s: %s", tmpFile, err)
+	}
+	tests := []struct {
+		name  string
+		setup func(manager *ManagerImpl)
+	}{
+		{
+			name: "missing-state-folder",
+			setup: func(manager *ManagerImpl) {
+				manager.config.StateFolder = tmpFile
+			},
+		},
+		{
+			name: "missing-bin-folder",
+			setup: func(manager *ManagerImpl) {
+				manager.config.BinFolder = tmpFile
+			},
+		},
+		{
+			name: "missing-packages-folder",
+			setup: func(manager *ManagerImpl) {
+				manager.config.PackagesFolder = tmpFile
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			manager := getDummyManagerImpl(t)
+			test.setup(manager)
+			err := manager.Init()
+			assert.Error(t, err, "Init() must return an error because a path is a file")
+		})
+	}
+
 }
 
 func TestManagerInfo(t *testing.T) {
