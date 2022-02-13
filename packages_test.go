@@ -10,6 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const dummyProviderName = "dummy"
+
 func dummyPackage() *Package {
 	return &Package{
 		PackageV2{
@@ -17,6 +19,7 @@ func dummyPackage() *Package {
 			Name:          "testName",
 			GOOS:          make(map[string]string),
 			GOARCH:        make(map[string]string),
+			Provider:      dummyProviderName,
 		},
 	}
 }

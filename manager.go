@@ -50,7 +50,9 @@ type ManagerImpl struct {
 	Providers map[string]PackageProvider
 	Packages  map[string]Package
 	logger    zerolog.Logger
-	tmpDir    string
+	// Place to write stdout message to. Defaults to os.Stdout. Used for testing.
+	stdout io.Writer
+	tmpDir string
 }
 
 func NewManager(configPath string, logger zerolog.Logger, migrate bool) (Manager, error) {
@@ -64,6 +66,7 @@ func NewManager(configPath string, logger zerolog.Logger, migrate bool) (Manager
 		Providers: make(map[string]PackageProvider),
 		Packages:  make(map[string]Package),
 		logger:    logger.With().Str("module", "manage").Logger(),
+		stdout:    os.Stdout,
 	}
 
 	for name, providerFunc := range PackageProviders {
@@ -157,25 +160,25 @@ func (manager *ManagerImpl) Info(name string) error {
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
 	}
-	encoder := yaml.NewEncoder(os.Stdout)
+	encoder := yaml.NewEncoder(manager.stdout)
 	encoder.Encode(pkgName)
 	version, ok := manager.StateFile.Packages[name]
 	if !ok {
 		version = "not installed"
 	}
-	fmt.Printf("version: %s\n", version)
+	fmt.Fprintf(manager.stdout, "version: %s\n", version)
 	return nil
 }
 
 func (manager *ManagerImpl) List() error {
 	for name := range manager.Packages {
-		fmt.Printf("- %s\n", name)
+		fmt.Fprintf(manager.stdout, "- %s\n", name)
 	}
 	return nil
 }
 func (manager *ManagerImpl) Installed() error {
 	for name, version := range manager.StateFile.Packages {
-		fmt.Printf("%s - %s\n", name, version)
+		fmt.Fprintf(manager.stdout, "%s - %s\n", name, version)
 	}
 	return nil
 }
@@ -213,8 +216,7 @@ func (manager *ManagerImpl) Outdated() error {
 			continue
 		}
 		logger.Info().Msgf("find package version %s", version)
-		fmt.Printf("%s: %s => %s", pkg.Name, currentVersion, version)
-		fmt.Printf("\n")
+		fmt.Fprintf(manager.stdout, "%s: %s => %s\n", pkg.Name, currentVersion, version)
 	}
 	return nil
 }
@@ -237,7 +239,7 @@ func (manager *ManagerImpl) Install(name string, force bool) (err error) {
 		}
 	}
 	manager.logger.Info().Msgf("find package version %s", version)
-	if version == currentVersion && !force {
+	if currentVersion != "" && !force {
 		manager.logger.Info().Msgf("version is already installed :)")
 		return nil
 	}
@@ -516,7 +518,7 @@ func (manager *ManagerImpl) extractZip(pkg *Package, version string, sourceFile 
 	if err != nil {
 		return outputPath, err
 	}
-	reader.Close()
+	defer reader.Close()
 	for _, file := range reader.File {
 		name := strings.ToLower(file.Name)
 		if file.FileInfo().Mode().IsRegular() && binPattern.Match([]byte(name)) {
