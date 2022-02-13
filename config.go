@@ -32,7 +32,7 @@ func ReadConfig(path string) (*Config, error) {
 	if path != "" {
 		err := loadYaml(path, &config)
 		if err != nil {
-			return config, fmt.Errorf("cannot %s", err)
+			return config, fmt.Errorf("%w: %s", ErrConfigLoad, err)
 		}
 	} else {
 		for _, path := range DefaultConfigPaths {
@@ -48,6 +48,7 @@ func ReadConfig(path string) (*Config, error) {
 	if config.PackagesFolder == "" {
 		config.PackagesFolder = filepath.Join(config.StateFolder, "packages")
 	}
+	config.PackagesFolder = expandPath(config.PackagesFolder)
 
 	return config, nil
 }
