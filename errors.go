@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrPackageNotFound           = errors.New("package not found")
+	ErrPackageLoadError          = errors.New("cannot load package")
 	ErrProviderNotFound          = errors.New("package provider not found")
 	ErrProviderConfig            = errors.New("provider config is not valid")
 	ErrProvider                  = errors.New("provider error")

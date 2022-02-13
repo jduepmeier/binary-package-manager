@@ -1,17 +1,19 @@
 package bpm
 
 import (
+	"bytes"
 	"fmt"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 func dummyPackage() *Package {
 	return &Package{
 		PackageV2{
-			SchemaVersion: 1,
+			SchemaVersion: 2,
 			Name:          "testName",
 			GOOS:          make(map[string]string),
 			GOARCH:        make(map[string]string),
@@ -87,5 +89,72 @@ func TestPackagePatternExpand(t *testing.T) {
 	}
 	for _, test := range tests {
 		assert.Equal(t, pkg.patternExpand(test.input, test.version), test.output)
+	}
+}
+
+var (
+	pkgTestStringVersion1 = `
+---
+schema_version: 1
+name: testName
+`
+	pkgTestStringVersion2 = `
+schema_version: 2
+name: testName
+`
+	pkgTestStringMissingSchemaVersion = `
+name: testName
+`
+	pkgTestStringSchemaFieldError = `
+schema_version: string
+`
+	pkgTestStringFieldError = fmt.Sprintf(`
+schema_version: %d
+name: {}
+`, PackageSchemaVersion)
+)
+
+func TestUnmarshalPackage(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		input string
+		err   error
+	}{
+		{
+			name:  "version-1",
+			input: pkgTestStringVersion1,
+			err:   ErrMigrateNeeded,
+		},
+		{
+			name:  "version-2",
+			input: pkgTestStringVersion2,
+			err:   nil,
+		},
+		{
+			name:  "missing-schema",
+			input: pkgTestStringMissingSchemaVersion,
+			err:   ErrMigrateNeeded,
+		},
+		{
+			name:  "schema-version-error",
+			input: pkgTestStringSchemaFieldError,
+			err:   ErrPackageLoadError,
+		},
+		{
+			name:  "schema-error",
+			input: pkgTestStringFieldError,
+			err:   ErrPackageLoadError,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			reader := bytes.NewReader([]byte(test.input))
+			decoder := yaml.NewDecoder(reader)
+			pkg := Package{}
+			err := decoder.Decode(&pkg)
+			assert.ErrorIs(t, err, test.err)
+		})
 	}
 }
