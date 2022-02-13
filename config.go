@@ -67,12 +67,16 @@ func loadYaml(path string, obj interface{}) error {
 func dumpYaml(path string, obj interface{}) error {
 	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrYamlDump, err)
 	}
 	defer file.Close()
 
 	encoder := yaml.NewEncoder(file)
-	return encoder.Encode(obj)
+	err = encoder.Encode(obj)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrYamlDump, err)
+	}
+	return nil
 }
 
 func expandPath(path string) string {

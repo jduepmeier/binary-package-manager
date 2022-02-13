@@ -2,6 +2,7 @@ package bpm
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -169,6 +170,60 @@ func TestExpandPath(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.output, expandPath(test.input))
+		})
+	}
+}
+
+type unableToYamlMarshal struct{}
+
+func (u *unableToYamlMarshal) MarshalYAML() (interface{}, error) {
+	return nil, fmt.Errorf("cannot be marshaled")
+}
+
+func TestDumpYaml(t *testing.T) {
+	tmpDir := t.TempDir()
+	output := struct {
+		Name string `yaml:"name"`
+	}{
+		Name: "test",
+	}
+	expectedContent := "name: test\n"
+	tests := []struct {
+		name string
+		path string
+		elem interface{}
+		err  error
+	}{
+		{
+			name: "normal",
+			path: "normal.yaml",
+			elem: &output,
+			err:  nil,
+		},
+		{
+			name: "broken",
+			path: "normal.yaml",
+			elem: &unableToYamlMarshal{},
+			err:  ErrYamlDump,
+		},
+		{
+			name: "sub-folder",
+			path: "sub/folder.yaml",
+			elem: &output,
+			err:  ErrYamlDump,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			filePath := path.Join(tmpDir, test.path)
+			err := dumpYaml(filePath, test.elem)
+			assert.ErrorIs(t, err, test.err)
+			if test.err == nil {
+				content, err := ioutil.ReadFile(filePath)
+				assert.NoError(t, err, "should should be readable")
+				assert.Equal(t, expectedContent, string(content))
+			}
 		})
 	}
 }

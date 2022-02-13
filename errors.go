@@ -17,4 +17,5 @@ var (
 	ErrUnknownStateFileVersion   = errors.New("unknown state file version")
 	ErrUnknownPackageFileVersion = errors.New("unknown state file version")
 	ErrConfigLoad                = errors.New("cannot load config file")
+	ErrYamlDump                  = errors.New("cannot dump content as yaml")
 )
