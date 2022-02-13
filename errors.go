@@ -15,7 +15,7 @@ var (
 	ErrProviderFetch             = errors.New("error fetching package")
 	ErrMigrateNeeded             = fmt.Errorf("migration needed. Call `%s migrate` to migrate files", os.Args[0])
 	ErrUnknownStateFileVersion   = errors.New("unknown state file version")
-	ErrUnknownPackageFileVersion = errors.New("unknown state file version")
+	ErrUnknownPackageFileVersion = errors.New("unknown package file version")
 	ErrConfigLoad                = errors.New("cannot load config file")
 	ErrYamlDump                  = errors.New("cannot dump content as yaml")
 )
