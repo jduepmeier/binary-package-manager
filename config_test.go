@@ -32,6 +32,15 @@ func getTestConfig(expand bool) *Config {
 	}
 }
 
+func getTestTmpDirConfig(t *testing.T) *Config {
+	tmpDir := t.TempDir()
+	return &Config{
+		BinFolder:      path.Join(tmpDir, "bin"),
+		StateFolder:    path.Join(tmpDir, "state"),
+		PackagesFolder: path.Join(tmpDir, "packages"),
+	}
+}
+
 func TestConfigLoad(t *testing.T) {
 
 	tests := []struct {

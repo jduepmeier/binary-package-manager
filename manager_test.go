@@ -45,14 +45,17 @@ func generateTestConfig(t *testing.T) (string, *Config, *StateFile) {
 	return configPath, config, state
 }
 
-func getDummyManagerImpl() *ManagerImpl {
-	return &ManagerImpl{
-		config:    getTestConfig(true),
+func getDummyManagerImpl(t *testing.T) *ManagerImpl {
+	manager := &ManagerImpl{
+		config:    getTestTmpDirConfig(t),
 		Providers: make(map[string]PackageProvider),
 		Packages:  make(map[string]Package),
 		logger:    zerolog.Nop(),
 		stdout:    &bytes.Buffer{},
 	}
+	err := manager.Init()
+	assert.NoError(t, err, "the manager should be initialized (all folders should be created)")
+	return manager
 }
 
 type DummyProvider struct {
@@ -497,7 +500,7 @@ type outputTestFunc func(t *testing.T, test *outputTest, manager *ManagerImpl) e
 func runOutputTests(t *testing.T, tests []outputTest, outputTestFunc outputTestFunc) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			manager := getDummyManagerImpl()
+			manager := getDummyManagerImpl(t)
 			manager.StateFile = test.state
 			if test.pkg != nil {
 				manager.Packages[test.pkg.Name] = *test.pkg
