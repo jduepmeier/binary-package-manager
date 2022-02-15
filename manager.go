@@ -293,20 +293,20 @@ func (manager *ManagerImpl) inPackageList(pkgName string, pkgNames []string) boo
 }
 
 func (manager *ManagerImpl) Update(packageNames []string) (err error) {
-	var selectedPackages []*Package
+	var selectedPackages []Package
 	if len(packageNames) > 0 {
 		for _, pkg := range manager.Packages {
 			if manager.inPackageList(pkg.Name, packageNames) {
-				selectedPackages = append(selectedPackages, &pkg)
+				selectedPackages = append(selectedPackages, pkg)
 			}
 		}
 	} else {
 		for _, pkg := range manager.Packages {
-			selectedPackages = append(selectedPackages, &pkg)
+			selectedPackages = append(selectedPackages, pkg)
 		}
 	}
 	for _, pkg := range selectedPackages {
-		err := manager.update(pkg)
+		err := manager.update(&pkg)
 		if err != nil {
 			logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
 			logger.Error().Msgf("cannot update package: %s. Skipping...", err)
