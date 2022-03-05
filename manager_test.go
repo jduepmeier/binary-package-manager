@@ -609,6 +609,109 @@ func TestManagerOutdated(t *testing.T) {
 	})
 }
 
+func TestManagerUpdate(t *testing.T) {
+	tests := []outputTest{
+		{
+			name:        "no-packages",
+			packageName: dummyPackage().Name,
+			pkg:         nil,
+			err:         nil,
+			state:       getDummyState(),
+			provider:    &DummyProvider{},
+			output:      "",
+		},
+		{
+			name:        "specific-packages",
+			packageName: dummyPackage().Name,
+			pkg:         dummyPackage(),
+			err:         nil,
+			state: func() *StateFile {
+				state := getDummyState()
+				state.Packages[dummyPackage().Name] = "v1.0.0"
+				return state
+			}(),
+			provider: &DummyProvider{
+				FetchPackages: map[string]string{
+					dummyPackage().Name: "v1.1.0",
+				},
+			},
+			output: "",
+		},
+		{
+			name:        "packages",
+			packageName: "",
+			pkg:         dummyPackage(),
+			err:         nil,
+			state: func() *StateFile {
+				state := getDummyState()
+				state.Packages[dummyPackage().Name] = "v1.0.0"
+				return state
+			}(),
+			provider: &DummyProvider{
+				FetchPackages: map[string]string{
+					dummyPackage().Name: "v1.1.0",
+				},
+			},
+			output: "",
+		},
+	}
+
+	runOutputTests(t, tests, func(t *testing.T, test *outputTest, manager *ManagerImpl) error {
+		if test.pkg != nil {
+			manager.Packages = map[string]Package{
+				test.pkg.Name: *test.pkg,
+			}
+		}
+		packages := make([]string, 0)
+		if test.packageName != "" {
+			packages = append(packages, test.packageName)
+		}
+		err := manager.Update(packages)
+		return err
+	})
+}
+
+func TestInPackageList(t *testing.T) {
+	tests := []struct {
+		name     string
+		packages []string
+		pkgName  string
+		result   bool
+	}{
+		{
+			name:     "no-packages",
+			packages: []string{},
+			pkgName:  "",
+			result:   false,
+		},
+		{
+			name:     "no-packages-with-pkg-name",
+			packages: []string{},
+			pkgName:  "test",
+			result:   false,
+		},
+		{
+			name:     "packages-wrong-name",
+			packages: []string{"pkg"},
+			pkgName:  "test",
+			result:   false,
+		},
+		{
+			name:     "packages-correct",
+			packages: []string{"pkg"},
+			pkgName:  "pkg",
+			result:   true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			manager := getDummyManagerImpl(t)
+			assert.Equal(t, test.result, manager.inPackageList(test.pkgName, test.packages))
+		})
+	}
+}
+
 type outputTest struct {
 	name        string
 	packageName string
