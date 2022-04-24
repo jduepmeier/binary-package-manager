@@ -1,0 +1,4 @@
+---
+bin_folder: ~/bin
+state_folder: ~/state
+packages_folder: ~/packages

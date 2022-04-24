@@ -26,26 +26,47 @@ type SchemaVersion struct {
 	Version int
 }
 
-type Manager struct {
-	Config    *Config
+type ManagerCreateFunc func(configPath string, logger zerolog.Logger, migrate bool) (Manager, error)
+
+type Manager interface {
+	Config() *Config
+	Init() error
+	SaveState() error
+	LoadState() error
+	Info(name string) error
+	List() error
+	Installed() error
+	Add(name string, url string) error
+	Outdated() error
+	Install(name string, force bool) error
+	Update(packageNames []string) error
+	Migrate() error
+	FetchFromDownloadURL(pkg Package, version string, cacheDir string) (path string, err error)
+}
+
+type ManagerImpl struct {
+	config    *Config
 	StateFile *StateFile
 	Providers map[string]PackageProvider
 	Packages  map[string]Package
 	logger    zerolog.Logger
-	tmpDir    string
+	// Place to write stdout message to. Defaults to os.Stdout. Used for testing.
+	stdout io.Writer
+	tmpDir string
 }
 
-func NewManager(configPath string, logger zerolog.Logger, migrate bool) (*Manager, error) {
+func NewManager(configPath string, logger zerolog.Logger, migrate bool) (Manager, error) {
 	config, err := ReadConfig(configPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrManagerCreate, err)
 	}
 
-	manager := &Manager{
-		Config:    config,
+	manager := &ManagerImpl{
+		config:    config,
 		Providers: make(map[string]PackageProvider),
 		Packages:  make(map[string]Package),
 		logger:    logger.With().Str("module", "manage").Logger(),
+		stdout:    os.Stdout,
 	}
 
 	for name, providerFunc := range PackageProviders {
@@ -53,25 +74,32 @@ func NewManager(configPath string, logger zerolog.Logger, migrate bool) (*Manage
 	}
 	err = manager.Init()
 	if err != nil {
-		return manager, err
+		return manager, fmt.Errorf("%w: %s", ErrManagerCreate, err)
 	}
 
 	if !migrate {
 		err = manager.LoadState()
+		if err != nil {
+			err = fmt.Errorf("%w: %s", ErrManagerCreate, err)
+		}
 	}
 	return manager, err
 }
 
-func (manager *Manager) Init() error {
-	err := os.MkdirAll(manager.Config.StateFolder, 0755)
+func (manager *ManagerImpl) Config() *Config {
+	return manager.config
+}
+
+func (manager *ManagerImpl) Init() error {
+	err := os.MkdirAll(manager.config.StateFolder, 0755)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(manager.Config.BinFolder, 0755)
+	err = os.MkdirAll(manager.config.BinFolder, 0755)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(manager.Config.PackagesFolder, 0755)
+	err = os.MkdirAll(manager.config.PackagesFolder, 0755)
 	if err != nil {
 		return err
 	}
@@ -79,17 +107,17 @@ func (manager *Manager) Init() error {
 	return nil
 }
 
-func (manager *Manager) SaveState() error {
-	stateFile := filepath.Join(manager.Config.StateFolder, "state.yaml")
+func (manager *ManagerImpl) SaveState() error {
+	stateFile := filepath.Join(manager.config.StateFolder, "state.yaml")
 	return dumpYaml(stateFile, &manager.StateFile)
 }
 
-func (manager *Manager) LoadState() error {
+func (manager *ManagerImpl) LoadState() error {
 	manager.StateFile = &StateFile{
 		Version:  1,
 		Packages: make(map[string]string),
 	}
-	stateFilePath := filepath.Join(manager.Config.StateFolder, "state.yaml")
+	stateFilePath := filepath.Join(manager.config.StateFolder, "state.yaml")
 	err := loadYaml(stateFilePath, &manager.StateFile)
 
 	if manager.StateFile.Version != StateFileVersion {
@@ -103,7 +131,7 @@ func (manager *Manager) LoadState() error {
 		return err
 	}
 
-	err = filepath.Walk(manager.Config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(manager.config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -130,49 +158,50 @@ func (manager *Manager) LoadState() error {
 	return err
 }
 
-func (manager *Manager) Info(name string) error {
+func (manager *ManagerImpl) Info(name string) error {
 	pkgName, ok := manager.Packages[name]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
 	}
-	encoder := yaml.NewEncoder(os.Stdout)
+	encoder := yaml.NewEncoder(manager.stdout)
 	encoder.Encode(pkgName)
 	version, ok := manager.StateFile.Packages[name]
 	if !ok {
 		version = "not installed"
 	}
-	fmt.Printf("version: %s\n", version)
+	fmt.Fprintf(manager.stdout, "version: %s\n", version)
 	return nil
 }
 
-func (manager *Manager) List() error {
+func (manager *ManagerImpl) List() error {
 	for name := range manager.Packages {
-		fmt.Printf("- %s\n", name)
+		fmt.Fprintf(manager.stdout, "- %s\n", name)
 	}
 	return nil
 }
-func (manager *Manager) Installed() error {
+func (manager *ManagerImpl) Installed() error {
 	for name, version := range manager.StateFile.Packages {
-		fmt.Printf("%s - %s\n", name, version)
+		fmt.Fprintf(manager.stdout, "%s - %s\n", name, version)
 	}
 	return nil
 }
 
-func (manager *Manager) Add(name string, url string) error {
+func (manager *ManagerImpl) Add(name string, url string) error {
 	splitted := strings.Split(url, "/")
 	provider := splitted[0]
 	pkg := Package{
 		PackageV2: PackageV2{
-			Name:     name,
-			URL:      url,
-			Provider: provider,
+			SchemaVersion: PackageSchemaVersion,
+			Name:          name,
+			URL:           url,
+			Provider:      provider,
 		},
 	}
 	manager.Packages[name] = pkg
-	return dumpYaml(filepath.Join(manager.Config.PackagesFolder, name+".yaml"), &pkg)
+	return dumpYaml(filepath.Join(manager.config.PackagesFolder, name+".yaml"), &pkg)
 }
 
-func (manager *Manager) Outdated() error {
+func (manager *ManagerImpl) Outdated() error {
 	for _, pkg := range manager.Packages {
 		logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
 		currentVersion, ok := manager.StateFile.Packages[pkg.Name]
@@ -191,13 +220,12 @@ func (manager *Manager) Outdated() error {
 			continue
 		}
 		logger.Info().Msgf("find package version %s", version)
-		fmt.Printf("%s: %s => %s", pkg.Name, currentVersion, version)
-		fmt.Printf("\n")
+		fmt.Fprintf(manager.stdout, "%s: %s => %s\n", pkg.Name, currentVersion, version)
 	}
 	return nil
 }
 
-func (manager *Manager) Install(name string, force bool) (err error) {
+func (manager *ManagerImpl) Install(name string, force bool) (err error) {
 	pkg, ok := manager.Packages[name]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrPackageNotFound, name)
@@ -215,7 +243,7 @@ func (manager *Manager) Install(name string, force bool) (err error) {
 		}
 	}
 	manager.logger.Info().Msgf("find package version %s", version)
-	if version == currentVersion && !force {
+	if currentVersion != "" && !force {
 		manager.logger.Info().Msgf("version is already installed :)")
 		return nil
 	}
@@ -255,7 +283,7 @@ func (manager *Manager) Install(name string, force bool) (err error) {
 	return nil
 }
 
-func (manager *Manager) inPackageList(pkgName string, pkgNames []string) bool {
+func (manager *ManagerImpl) inPackageList(pkgName string, pkgNames []string) bool {
 	for _, name := range pkgNames {
 		if pkgName == name {
 			return true
@@ -264,21 +292,21 @@ func (manager *Manager) inPackageList(pkgName string, pkgNames []string) bool {
 	return false
 }
 
-func (manager *Manager) Update(packageNames []string) (err error) {
-	var selectedPackages []*Package
+func (manager *ManagerImpl) Update(packageNames []string) (err error) {
+	var selectedPackages []Package
 	if len(packageNames) > 0 {
 		for _, pkg := range manager.Packages {
 			if manager.inPackageList(pkg.Name, packageNames) {
-				selectedPackages = append(selectedPackages, &pkg)
+				selectedPackages = append(selectedPackages, pkg)
 			}
 		}
 	} else {
 		for _, pkg := range manager.Packages {
-			selectedPackages = append(selectedPackages, &pkg)
+			selectedPackages = append(selectedPackages, pkg)
 		}
 	}
 	for _, pkg := range selectedPackages {
-		err := manager.update(pkg)
+		err := manager.update(&pkg)
 		if err != nil {
 			logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
 			logger.Error().Msgf("cannot update package: %s. Skipping...", err)
@@ -287,7 +315,7 @@ func (manager *Manager) Update(packageNames []string) (err error) {
 	return nil
 }
 
-func (manager *Manager) FetchFromDownloadURL(pkg Package, version string, cacheDir string) (path string, err error) {
+func (manager *ManagerImpl) FetchFromDownloadURL(pkg Package, version string, cacheDir string) (path string, err error) {
 	url := pkg.patternExpand(pkg.DownloadUrl, version)
 
 	resp, err := http.DefaultClient.Get(url)
@@ -315,7 +343,7 @@ func (manager *Manager) FetchFromDownloadURL(pkg Package, version string, cacheD
 	return path, nil
 }
 
-func (manager *Manager) update(pkg *Package) (err error) {
+func (manager *ManagerImpl) update(pkg *Package) (err error) {
 	logger := manager.logger.With().Str("pkg", pkg.Name).Logger()
 	provider, ok := manager.Providers[pkg.Provider]
 	if !ok {
@@ -336,7 +364,7 @@ func (manager *Manager) update(pkg *Package) (err error) {
 		return nil
 	}
 
-	if !manager.Config.Quiet {
+	if !manager.config.Quiet {
 		fmt.Printf("%s %s => %s\n", pkg.Name, currentVersion, version)
 	}
 
@@ -374,8 +402,8 @@ func (manager *Manager) update(pkg *Package) (err error) {
 	return nil
 }
 
-func (manager *Manager) install(pkg *Package, version string, sourceFile string) error {
-	targetFile := filepath.Join(manager.Config.BinFolder, pkg.Name)
+func (manager *ManagerImpl) install(pkg *Package, version string, sourceFile string) error {
+	targetFile := filepath.Join(manager.config.BinFolder, pkg.Name)
 	manager.logger.Debug().Msgf("install file %s to %s", sourceFile, targetFile)
 	// first copy the new file to target file
 	inputFile, err := os.Open(sourceFile)
@@ -385,7 +413,7 @@ func (manager *Manager) install(pkg *Package, version string, sourceFile string)
 	defer func() {
 		inputFile.Close()
 	}()
-	targetPathWithVersion := filepath.Join(manager.Config.BinFolder, fmt.Sprintf("%s-%s", pkg.Name, version))
+	targetPathWithVersion := filepath.Join(manager.config.BinFolder, fmt.Sprintf("%s-%s", pkg.Name, version))
 	outputFile, err := os.Create(targetPathWithVersion)
 	if err != nil {
 		return err
@@ -412,7 +440,7 @@ func (manager *Manager) install(pkg *Package, version string, sourceFile string)
 	return nil
 }
 
-func (manager *Manager) extractPackage(pkg *Package, version string, sourceFile string) (string, error) {
+func (manager *ManagerImpl) extractPackage(pkg *Package, version string, sourceFile string) (string, error) {
 	manager.logger.Info().Msgf("extract package %s (format %s)", pkg.Name, pkg.ArchiveFormat)
 	switch pkg.ArchiveFormat {
 	case "tar":
@@ -426,7 +454,7 @@ func (manager *Manager) extractPackage(pkg *Package, version string, sourceFile 
 	}
 }
 
-func (manager *Manager) extractTar(pkg *Package, version string, sourcePath string) (string, error) {
+func (manager *ManagerImpl) extractTar(pkg *Package, version string, sourcePath string) (string, error) {
 	sourceFile, err := os.Open(sourcePath)
 	if err != nil {
 		return "", err
@@ -434,7 +462,7 @@ func (manager *Manager) extractTar(pkg *Package, version string, sourcePath stri
 	defer sourceFile.Close()
 	return manager.extractTarReader(pkg, version, sourceFile)
 }
-func (manager *Manager) extractTarReader(pkg *Package, version string, reader io.Reader) (string, error) {
+func (manager *ManagerImpl) extractTarReader(pkg *Package, version string, reader io.Reader) (string, error) {
 	tarReader := tar.NewReader(reader)
 	var outputPath string
 	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern, version))
@@ -469,7 +497,7 @@ func (manager *Manager) extractTarReader(pkg *Package, version string, reader io
 	}
 }
 
-func (manager *Manager) extractTarGZ(pkg *Package, version string, sourceFile string) (string, error) {
+func (manager *ManagerImpl) extractTarGZ(pkg *Package, version string, sourceFile string) (string, error) {
 	file, err := os.Open(sourceFile)
 	if err != nil {
 		return "", err
@@ -483,7 +511,7 @@ func (manager *Manager) extractTarGZ(pkg *Package, version string, sourceFile st
 	return manager.extractTarReader(pkg, version, reader)
 }
 
-func (manager *Manager) extractZip(pkg *Package, version string, sourceFile string) (string, error) {
+func (manager *ManagerImpl) extractZip(pkg *Package, version string, sourceFile string) (string, error) {
 	var outputPath string
 	binPattern, err := regexp.Compile(pkg.patternExpand(pkg.BinPattern, version))
 	if err != nil {
@@ -494,7 +522,7 @@ func (manager *Manager) extractZip(pkg *Package, version string, sourceFile stri
 	if err != nil {
 		return outputPath, err
 	}
-	reader.Close()
+	defer reader.Close()
 	for _, file := range reader.File {
 		name := strings.ToLower(file.Name)
 		if file.FileInfo().Mode().IsRegular() && binPattern.Match([]byte(name)) {
@@ -517,12 +545,12 @@ func (manager *Manager) extractZip(pkg *Package, version string, sourceFile stri
 	return outputPath, fmt.Errorf("archive does not contain a file matching pattern %s", pkg.BinPattern)
 }
 
-func (manager *Manager) migrateStateFile() error {
+func (manager *ManagerImpl) migrateStateFile() error {
 	manager.logger.Debug().Msgf("migrate state file")
 	version := SchemaVersion{
 		Version: 1,
 	}
-	stateFilePath := filepath.Join(manager.Config.StateFolder, "state.yaml")
+	stateFilePath := filepath.Join(manager.config.StateFolder, "state.yaml")
 	err := loadYaml(stateFilePath, &version)
 	if os.IsNotExist(err) {
 		return nil
@@ -538,7 +566,7 @@ func (manager *Manager) migrateStateFile() error {
 	return fmt.Errorf("%w: %d", ErrUnknownStateFileVersion, version.Version)
 }
 
-func (manager *Manager) migratePackageFile(path string) (err error) {
+func (manager *ManagerImpl) migratePackageFile(path string) (err error) {
 	manager.logger.Debug().Msgf("migrate package file %s", path)
 
 	version := SchemaVersion{
@@ -591,8 +619,8 @@ func (manager *Manager) migratePackageFile(path string) (err error) {
 	return dumpYaml(path, &pkg)
 }
 
-func (manager *Manager) migratePackageFiles() (err error) {
-	err = filepath.Walk(manager.Config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
+func (manager *ManagerImpl) migratePackageFiles() (err error) {
+	err = filepath.Walk(manager.config.PackagesFolder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -613,7 +641,7 @@ func (manager *Manager) migratePackageFiles() (err error) {
 	return err
 }
 
-func (manager *Manager) Migrate() error {
+func (manager *ManagerImpl) Migrate() error {
 	err := manager.migrateStateFile()
 	if err != nil {
 		return err

@@ -21,6 +21,6 @@ func (cmd *MigrateSubCommand) AddCommand(parser *flags.Parser) error {
 	return err
 }
 
-func (cmd *MigrateSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
+func (cmd *MigrateSubCommand) Run(logger zerolog.Logger, manager bpm.Manager) error {
 	return manager.Migrate()
 }

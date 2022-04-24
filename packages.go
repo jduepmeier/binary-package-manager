@@ -1,6 +1,7 @@
 package bpm
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
@@ -65,7 +66,7 @@ func (pkg *Package) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if err := unmarshal((*T)(obj)); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrPackageLoadError, err)
 	}
 
 	if obj.SchemaVersion != PackageSchemaVersion {
@@ -73,7 +74,7 @@ func (pkg *Package) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if err := unmarshal((*plain)(pkg)); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrPackageLoadError, err)
 	}
 	return nil
 }

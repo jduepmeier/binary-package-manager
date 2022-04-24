@@ -21,6 +21,6 @@ func (cmd *OutdatedSubCommand) AddCommand(parser *flags.Parser) error {
 	return err
 }
 
-func (cmd *OutdatedSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
+func (cmd *OutdatedSubCommand) Run(logger zerolog.Logger, manager bpm.Manager) error {
 	return manager.Outdated()
 }

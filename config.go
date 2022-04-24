@@ -32,7 +32,7 @@ func ReadConfig(path string) (*Config, error) {
 	if path != "" {
 		err := loadYaml(path, &config)
 		if err != nil {
-			return config, fmt.Errorf("cannot %s", err)
+			return config, fmt.Errorf("%w: %s", ErrConfigLoad, err)
 		}
 	} else {
 		for _, path := range DefaultConfigPaths {
@@ -48,6 +48,7 @@ func ReadConfig(path string) (*Config, error) {
 	if config.PackagesFolder == "" {
 		config.PackagesFolder = filepath.Join(config.StateFolder, "packages")
 	}
+	config.PackagesFolder = expandPath(config.PackagesFolder)
 
 	return config, nil
 }
@@ -66,12 +67,16 @@ func loadYaml(path string, obj interface{}) error {
 func dumpYaml(path string, obj interface{}) error {
 	file, err := os.Create(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", ErrYamlDump, err)
 	}
 	defer file.Close()
 
 	encoder := yaml.NewEncoder(file)
-	return encoder.Encode(obj)
+	err = encoder.Encode(obj)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrYamlDump, err)
+	}
+	return nil
 }
 
 func expandPath(path string) string {

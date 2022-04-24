@@ -23,7 +23,7 @@ func (cmd *VersionSubCommand) AddCommand(parser *flags.Parser) error {
 	return err
 }
 
-func (cmd *VersionSubCommand) Run(logger zerolog.Logger, manager *bpm.Manager) error {
+func (cmd *VersionSubCommand) Run(logger zerolog.Logger, manager bpm.Manager) error {
 	fmt.Printf("%s - %s\n", os.Args[0], build)
 	return nil
 }
