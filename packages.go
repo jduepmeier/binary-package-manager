@@ -33,6 +33,8 @@ type PackageV2 struct {
 	ArchiveFormat string            `yaml:"archive_format" default:""`
 	BinPattern    string            `yaml:"bin_pattern" default:"${name}"`
 	DownloadUrl   string            `yaml:"download_url" default:""`
+	TagFilter     string            `yaml:"tag_filter" default:""`
+	PreReleases   bool              `yaml:"pre_releases"`
 }
 
 type PackageV1 struct {

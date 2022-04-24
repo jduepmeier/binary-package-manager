@@ -53,6 +53,11 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 
 func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.RepositoryRelease, error) {
 	ctx := context.TODO()
+	tagFilterRegex, err := regexp.Compile(pkg.TagFilter)
+	if err != nil {
+		return nil, fmt.Errorf("%w: tag filter %q is not a valid regex: %s", ErrProviderConfig, pkg.TagFilter, err)
+	}
+
 	splits := strings.SplitN(pkg.URL, "/", 3)
 	if len(splits) < 3 {
 		return nil, fmt.Errorf("%w: url (%s) has not the correct github format (github.com/<owner>/<repo>)", ErrProviderConfig, pkg.URL)
@@ -60,11 +65,35 @@ func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.Repositor
 	owner := splits[1]
 	repoName := splits[2]
 
-	release, _, err := provider.client.Repositories.GetLatestRelease(ctx, owner, repoName)
-	if err != nil {
-		return nil, fmt.Errorf("%w: cannot get repo: %s", ErrProviderConfig, err)
+	listOptions := &github.ListOptions{
+		Page:    0,
+		PerPage: 10,
 	}
-	return release, nil
+
+	for {
+		releases, resp, err := provider.client.Repositories.ListReleases(ctx, owner, repoName, listOptions)
+		if err != nil {
+			return nil, fmt.Errorf("%w: cannot get releases: %s", ErrProviderConfig, err)
+		}
+
+		for _, release := range releases {
+			tag := release.GetTagName()
+			if !tagFilterRegex.Match([]byte(tag)) {
+				continue
+			}
+			if release.GetPrerelease() && !pkg.PreReleases {
+				continue
+			}
+			return release, nil
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		listOptions.Page = resp.NextPage
+	}
+
+	return nil, fmt.Errorf("%w: cannot find a release (TagFilter: %q, PreReleases: %t)", ErrProviderConfig, pkg.TagFilter, pkg.PreReleases)
 }
 
 func (provider *GithubProvider) GetLatest(pkg Package) (version string, err error) {
