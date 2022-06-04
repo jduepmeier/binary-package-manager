@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.2.0 (2022-06-04)
+
+* Update dependencies
+* Update README
+* Fix update does always update same package
+* Fix error message for unknown package file version
+* Check for error cases in cmd run func
+* Add tests
+* Add codeql github workflow
+* Create github workflow
+* Add debugging info to rate-limits
+* Allow to pass github token
 * allow to update only named packages
 * add outdated command
 * add migrate command
