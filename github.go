@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v36/github"
 	"github.com/rs/zerolog"
 )
@@ -46,9 +48,29 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 	limits, _, err := provider.client.RateLimits(context.Background())
 	if err != nil {
 		logger.Err(err).Msgf("cannot get rate limits")
+	} else {
+		logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
 	}
-	logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
 	return provider
+}
+
+// sortReleases sorts github releases inplace stable
+func (provider *GithubProvider) sortReleases(releases []*github.RepositoryRelease) {
+	sort.SliceStable(releases, func(i, j int) bool {
+		// sort order is reversed
+		tagNameA := releases[i].GetTagName()
+		tagNameB := releases[j].GetTagName()
+		semverA, err := semver.NewVersion(tagNameA)
+		if err != nil {
+			return tagNameA < tagNameB
+		}
+		semverB, err := semver.NewVersion(tagNameB)
+		if err != nil {
+			return tagNameA < tagNameB
+		}
+
+		return semverA.LessThan(semverB)
+	})
 }
 
 func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.RepositoryRelease, error) {
@@ -75,8 +97,14 @@ func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.Repositor
 		if err != nil {
 			return nil, fmt.Errorf("%w: cannot get releases: %s", ErrProviderConfig, err)
 		}
+		provider.sortReleases(releases)
+		for i := len(releases) - 1; i > 0; i-- {
+			release := releases[i]
+			provider.logger.Debug().Msgf("found releases %v", release.GetTagName())
+		}
 
-		for _, release := range releases {
+		for i := len(releases) - 1; i > 0; i-- {
+			release := releases[i]
 			tag := release.GetTagName()
 			if !tagFilterRegex.Match([]byte(tag)) {
 				continue
