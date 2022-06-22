@@ -75,6 +75,11 @@ func (manager *DummyManager) Info(name string) error {
 	return nil
 }
 
+func (manager *DummyManager) Remove(name string) error {
+	manager.bumpCounter("Remove")
+	return nil
+}
+
 func (manager *DummyManager) List() error {
 	manager.bumpCounter("List")
 	return nil
