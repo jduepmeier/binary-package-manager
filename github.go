@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v36/github"
 	"github.com/rs/zerolog"
 )
@@ -46,13 +48,38 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 	limits, _, err := provider.client.RateLimits(context.Background())
 	if err != nil {
 		logger.Err(err).Msgf("cannot get rate limits")
+	} else {
+		logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
 	}
-	logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
 	return provider
+}
+
+// sortReleases sorts github releases inplace stable
+func (provider *GithubProvider) sortReleases(releases []*github.RepositoryRelease) {
+	sort.SliceStable(releases, func(i, j int) bool {
+		// sort order is reversed
+		tagNameA := releases[i].GetTagName()
+		tagNameB := releases[j].GetTagName()
+		semverA, err := semver.NewVersion(tagNameA)
+		if err != nil {
+			return tagNameA < tagNameB
+		}
+		semverB, err := semver.NewVersion(tagNameB)
+		if err != nil {
+			return tagNameA < tagNameB
+		}
+
+		return semverA.LessThan(semverB)
+	})
 }
 
 func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.RepositoryRelease, error) {
 	ctx := context.TODO()
+	tagFilterRegex, err := regexp.Compile(pkg.TagFilter)
+	if err != nil {
+		return nil, fmt.Errorf("%w: tag filter %q is not a valid regex: %s", ErrProviderConfig, pkg.TagFilter, err)
+	}
+
 	splits := strings.SplitN(pkg.URL, "/", 3)
 	if len(splits) < 3 {
 		return nil, fmt.Errorf("%w: url (%s) has not the correct github format (github.com/<owner>/<repo>)", ErrProviderConfig, pkg.URL)
@@ -60,11 +87,41 @@ func (provider *GithubProvider) getLatestRelease(pkg Package) (*github.Repositor
 	owner := splits[1]
 	repoName := splits[2]
 
-	release, _, err := provider.client.Repositories.GetLatestRelease(ctx, owner, repoName)
-	if err != nil {
-		return nil, fmt.Errorf("%w: cannot get repo: %s", ErrProviderConfig, err)
+	listOptions := &github.ListOptions{
+		Page:    0,
+		PerPage: 10,
 	}
-	return release, nil
+
+	for {
+		releases, resp, err := provider.client.Repositories.ListReleases(ctx, owner, repoName, listOptions)
+		if err != nil {
+			return nil, fmt.Errorf("%w: cannot get releases: %s", ErrProviderConfig, err)
+		}
+		provider.sortReleases(releases)
+		for i := len(releases) - 1; i > 0; i-- {
+			release := releases[i]
+			provider.logger.Debug().Msgf("found releases %v", release.GetTagName())
+		}
+
+		for i := len(releases) - 1; i > 0; i-- {
+			release := releases[i]
+			tag := release.GetTagName()
+			if !tagFilterRegex.Match([]byte(tag)) {
+				continue
+			}
+			if release.GetPrerelease() && !pkg.PreReleases {
+				continue
+			}
+			return release, nil
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		listOptions.Page = resp.NextPage
+	}
+
+	return nil, fmt.Errorf("%w: cannot find a release (TagFilter: %q, PreReleases: %t)", ErrProviderConfig, pkg.TagFilter, pkg.PreReleases)
 }
 
 func (provider *GithubProvider) GetLatest(pkg Package) (version string, err error) {
