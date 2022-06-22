@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -34,6 +35,7 @@ type Manager interface {
 	SaveState() error
 	LoadState() error
 	Info(name string) error
+	Remove(name string) error
 	List() error
 	Installed() error
 	Add(name string, url string) error
@@ -651,4 +653,21 @@ func (manager *ManagerImpl) Migrate() error {
 		return err
 	}
 	return manager.LoadState()
+}
+
+func (manager *ManagerImpl) Remove(pkgname string) error {
+	_, ok := manager.StateFile.Packages[pkgname]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrPackageNotInstalled, pkgname)
+	}
+
+	err := os.Remove(path.Join(manager.config.BinFolder, pkgname))
+	if os.IsNotExist(err) {
+		delete(manager.StateFile.Packages, pkgname)
+		return fmt.Errorf("%w: %s %s", ErrPackageRemove, pkgname, " does not exist in binary folder. Delete entry from state file")
+	} else if err != nil {
+		return fmt.Errorf("%w: %s: %s", ErrPackageRemove, pkgname, err)
+	}
+
+	return nil
 }
