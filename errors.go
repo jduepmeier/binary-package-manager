@@ -9,6 +9,8 @@ import (
 var (
 	ErrPackageNotFound           = errors.New("package not found")
 	ErrPackageLoadError          = errors.New("cannot load package")
+	ErrPackageNotInstalled       = errors.New("package is not installed")
+	ErrPackageRemove             = errors.New("cannot remove package")
 	ErrProviderNotFound          = errors.New("package provider not found")
 	ErrProviderConfig            = errors.New("provider config is not valid")
 	ErrProvider                  = errors.New("provider error")
