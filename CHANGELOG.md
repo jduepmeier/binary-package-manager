@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.3.0 (2023-02-23)
+
+* build(goreleaser): fix deprecations
+* fix(deps): update module gopkg.in/yaml.v2 to v3
+* Bump golang.org/x/net from 0.0.0-20211112202133-69e39bad7dc2 to 0.7.0
+* fix(deps): update module github.com/google/go-github/v36 to v50
+* fix(deps): update module gopkg.in/yaml.v2 to v3
+* chore(deps): update github/codeql-action action to v2
+* chore(deps): update actions/setup-go action to v3
+* Add remove command
+* fix(deps): use yaml.v3 instead of yaml.v2 in code
+* chore(deps): update actions/checkout action to v3
+* fix(deps): update module github.com/stretchr/testify to v1.8.1
+* fix(deps): update module github.com/masterminds/semver/v3 to v3.2.0
+* fix(deps): update module github.com/rs/zerolog to v1.29.0
+* chore(deps): add renovate.json
+
 ## 0.2.0 (2022-06-04)
 
 * Update dependencies
