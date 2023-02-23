@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/creasty/defaults v1.6.0
-	github.com/google/go-github/v36 v36.0.0
+	github.com/google/go-github/v50 v50.0.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.29.0
@@ -18,8 +18,12 @@ require (
 )
 
 require (
+	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
+	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 )
 
 require (
