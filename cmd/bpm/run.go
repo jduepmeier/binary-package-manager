@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bpm"
+	"github.com/jduepmeier/binary-package-manager"
 	"errors"
 	"fmt"
 	"io"

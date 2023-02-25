@@ -1,4 +1,4 @@
-module bpm
+module github.com/jduepmeier/binary-package-manager
 
 go 1.20
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bpm"
+	"github.com/jduepmeier/binary-package-manager"
 
 	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
