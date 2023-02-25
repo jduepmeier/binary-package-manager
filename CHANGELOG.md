@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (2023-02-25)
+
+### Fix
+
+- **deps**: update module github.com/stretchr/testify to v1.8.2
+- **deps**: update module github.com/google/go-github/v50 to v50.1.0
 
 ## 0.3.0 (2023-02-23)
 
