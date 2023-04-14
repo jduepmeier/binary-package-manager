@@ -7,7 +7,7 @@ require (
 	github.com/google/go-github/v50 v50.2.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/rs/zerolog v1.29.0
+	github.com/rs/zerolog v1.29.1
 	golang.org/x/crypto v0.7.0 // indirect
 )
 
