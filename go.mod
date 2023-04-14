@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/creasty/defaults v1.7.0
-	github.com/google/go-github/v50 v50.2.0
+	github.com/google/go-github/v51 v51.0.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.29.1
@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/google/go-github/v50 v50.2.0
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/yaml.v3 v3.0.1
 )
