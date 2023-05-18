@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2 (2023-05-18)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v51 to v52
+- **deps**: update module github.com/google/go-github/v50 to v51
+- **deps**: update module github.com/masterminds/semver/v3 to v3.2.1
+- **deps**: update module github.com/rs/zerolog to v1.29.1
+- **deps**: update module github.com/google/go-github/v50 to v50.2.0
+- **deps**: update module github.com/creasty/defaults to v1.7.0
+
 ## 0.3.1 (2023-02-25)
 
 ### Fix
