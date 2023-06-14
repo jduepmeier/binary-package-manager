@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/creasty/defaults v1.7.0
-	github.com/google/go-github/v53 v53.0.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.29.1
