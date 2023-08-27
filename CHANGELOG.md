@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.3 (2023-08-27)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v52 to v54
+- **deps**: update module github.com/rs/zerolog to v1.30.0
+- **deps**: update module github.com/stretchr/testify to v1.8.4
+- **deps**: update module github.com/google/go-github/v53 to v53.1.0
+- **deps**: update module github.com/google/go-github/v52 to v53
+- **deps**: update module github.com/stretchr/testify to v1.8.3
+
 ## 0.3.2 (2023-05-18)
 
 ### Fix
