@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (2023-08-27)
+
+### Feat
+
+- **manager**: add tar.xz support
+
 ## 0.3.3 (2023-08-27)
 
 ### Fix
