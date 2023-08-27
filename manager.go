@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog"
+	"github.com/ulikunitz/xz"
 	"gopkg.in/yaml.v3"
 )
 
@@ -449,6 +450,8 @@ func (manager *ManagerImpl) extractPackage(pkg *Package, version string, sourceF
 		return manager.extractTar(pkg, version, sourceFile)
 	case "tar.gz":
 		return manager.extractTarGZ(pkg, version, sourceFile)
+	case "tar.xz":
+		return manager.extractTarXZ(pkg, version, sourceFile)
 	case "zip":
 		return manager.extractZip(pkg, version, sourceFile)
 	default:
@@ -497,6 +500,21 @@ func (manager *ManagerImpl) extractTarReader(pkg *Package, version string, reade
 			return outputPath, err
 		}
 	}
+}
+
+func (manager *ManagerImpl) extractTarXZ(pkg *Package, version string, sourceFile string) (string, error) {
+	file, err := os.Open(sourceFile)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	reader, err := xz.NewReader(file)
+	if err != nil {
+		return "", err
+	}
+
+	return manager.extractTarReader(pkg, version, reader)
 }
 
 func (manager *ManagerImpl) extractTarGZ(pkg *Package, version string, sourceFile string) (string, error) {
