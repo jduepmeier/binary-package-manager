@@ -6,7 +6,7 @@ require (
 	github.com/creasty/defaults v1.7.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	golang.org/x/crypto v0.7.0 // indirect
 )
 
