@@ -446,6 +446,28 @@ func TestManagerInstall(t *testing.T) {
 			}(),
 		},
 		{
+			name:        "not-installed-tar-xz",
+			packageName: dummyPackage().Name,
+			output:      "",
+			state:       getDummyState(),
+			err:         nil,
+			provider: &DummyProvider{
+				LatestPackages: map[string]string{
+					dummyPackage().Name: "v1.0.0",
+				},
+				FetchPackages: map[string]string{
+					dummyPackage().Name: getTestPath("files", "dummy-bin.sh.tar.xz"),
+				},
+			},
+			installed: setBoolPointer(true),
+			pkg: func() *Package {
+				pkg := dummyPackage()
+				pkg.ArchiveFormat = "tar.xz"
+				pkg.BinPattern = "dummy-bin.sh"
+				return pkg
+			}(),
+		},
+		{
 			name:        "not-installed-zip",
 			packageName: dummyPackage().Name,
 			output:      "",
