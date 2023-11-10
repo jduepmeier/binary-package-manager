@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1 (2023-11-10)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v55 to v56
+- **deps**: update module github.com/rs/zerolog to v1.31.0
+- **deps**: update module github.com/google/go-github/v54 to v55
+
 ## 0.4.0 (2023-08-27)
 
 ### Feat
