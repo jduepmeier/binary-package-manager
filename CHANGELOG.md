@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 (2023-11-10)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v55 to v56
+
 ## 0.4.1 (2023-11-10)
 
 ### Fix
