@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/google/go-github/v55 v55.0.0
+	github.com/google/go-github/v56 v56.0.0
 	github.com/stretchr/testify v1.8.4
 	github.com/ulikunitz/xz v0.5.11
 	gopkg.in/yaml.v3 v3.0.1
