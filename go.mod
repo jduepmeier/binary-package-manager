@@ -1,6 +1,8 @@
 module github.com/jduepmeier/binary-package-manager
 
-go 1.20
+go 1.21
+
+toolchain go1.22.0
 
 require (
 	github.com/creasty/defaults v1.7.0
@@ -11,6 +13,7 @@ require (
 
 require (
 	github.com/google/go-github/v57 v57.0.0
+	github.com/google/go-github/v60 v60.0.0
 	github.com/stretchr/testify v1.9.0
 	github.com/ulikunitz/xz v0.5.11
 	gopkg.in/yaml.v3 v3.0.1
