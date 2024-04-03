@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4 (2024-04-03)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v57 to v61
+- **deps**: update module github.com/stretchr/testify to v1.9.0
+- **deps**: update module github.com/rs/zerolog to v1.32.0
+
 ## 0.4.3 (2024-01-07)
 
 ### Fix
