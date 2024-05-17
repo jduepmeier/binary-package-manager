@@ -2,7 +2,7 @@ module github.com/jduepmeier/binary-package-manager
 
 go 1.21
 
-toolchain go1.22.1
+toolchain go1.22.3
 
 require (
 	github.com/creasty/defaults v1.7.0
