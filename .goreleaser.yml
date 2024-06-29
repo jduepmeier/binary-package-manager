@@ -1,5 +1,6 @@
 # This is an example .goreleaser.yml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
+version: 2
 before:
   hooks:
     # You may remove this if you don't use go modules.
@@ -17,21 +18,42 @@ builds:
       - arm
       - arm64
     goarm:
-      - '6'
-      - '7'
+      - "6"
+      - "7"
     ignore:
       - goos: darwin
-        goarch: '386'
+        goarch: "386"
     binary: bpm
     main: ./cmd/bpm
     ldflags:
       - -X main.build={{ .Version }}
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
-  skip: true
+  use: git
+  groups:
+    - title: Feat
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Fix
+      regexp: '^.*?bug(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Refactor
+      regexp: '^.*?refactor(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Docs
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: Others
+      order: 999
+  filters:
+    include:
+      - '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      - '^.*?bug(\([[:word:]]+\))??!?:.+$'
+      - '^.*?refactor(\([[:word:]]+\))??!?:.+$'
+      - '^.*?docs(\([[:word:]]+\))??!?:.+$'
 
 release:
   github:
