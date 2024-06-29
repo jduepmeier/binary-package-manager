@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/rs/zerolog"
 )
 
@@ -132,6 +132,7 @@ func (provider *GithubProvider) GetLatest(pkg Package) (version string, err erro
 
 	return release.GetTagName(), err
 }
+
 func (provider *GithubProvider) FetchPackage(pkg Package, version string, cacheDir string) (path string, err error) {
 	ctx := context.TODO()
 	release, err := provider.getLatestRelease(pkg)
