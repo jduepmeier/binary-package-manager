@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.5 (2024-06-29)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v61 to v62
+- **deps**: update module github.com/jessevdk/go-flags to v1.6.1
+- **deps**: update module github.com/rs/zerolog to v1.33.0
+- **deps**: update module github.com/ulikunitz/xz to v0.5.12
+
 ## 0.4.4 (2024-04-03)
 
 ### Fix
