@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.22.4
 
 require (
-	github.com/creasty/defaults v1.7.0
+	github.com/creasty/defaults v1.8.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.33.0
