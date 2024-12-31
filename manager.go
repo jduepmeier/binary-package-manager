@@ -261,7 +261,7 @@ func (manager *ManagerImpl) Install(name string, force bool) (err error) {
 	}()
 
 	var path string
-	if pkg.DownloadUrl != "" {
+	if pkg.DownloadURL != "" {
 		path, err = manager.FetchFromDownloadURL(pkg, version, manager.tmpDir)
 	} else {
 		path, err = provider.FetchPackage(pkg, version, manager.tmpDir)
@@ -319,7 +319,7 @@ func (manager *ManagerImpl) Update(packageNames []string) (err error) {
 }
 
 func (manager *ManagerImpl) FetchFromDownloadURL(pkg Package, version string, cacheDir string) (path string, err error) {
-	url := pkg.patternExpand(pkg.DownloadUrl, version)
+	url := pkg.patternExpand(pkg.DownloadURL, version)
 
 	resp, err := http.DefaultClient.Get(url)
 	if err != nil {
@@ -380,7 +380,7 @@ func (manager *ManagerImpl) update(pkg *Package) (err error) {
 		manager.tmpDir = ""
 	}()
 	var path string
-	if pkg.DownloadUrl != "" {
+	if pkg.DownloadURL != "" {
 		path, err = manager.FetchFromDownloadURL(*pkg, version, manager.tmpDir)
 	} else {
 		path, err = provider.FetchPackage(*pkg, version, manager.tmpDir)
@@ -626,7 +626,7 @@ func (manager *ManagerImpl) migratePackageFile(path string) (err error) {
 				AssetPattern:  pkgV1.AssetPattern,
 				ArchiveFormat: pkgV1.ArchiveFormat,
 				BinPattern:    pkgV1.BinPattern,
-				DownloadUrl:   pkgV1.DownloadUrl,
+				DownloadURL:   pkgV1.DownloadURL,
 			},
 		}
 		goos := runtime.GOOS

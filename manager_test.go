@@ -525,8 +525,8 @@ func TestManagerAdd(t *testing.T) {
 	manager := getDummyManagerImpl(t)
 	pkgName := "testPkg"
 	providerName := "dummy"
-	testUrl := fmt.Sprintf("%s/test", providerName)
-	err := manager.Add(pkgName, testUrl)
+	testURL := fmt.Sprintf("%s/test", providerName)
+	err := manager.Add(pkgName, testURL)
 	assert.NoError(t, err, "add should not return an error")
 	pkgPath := path.Join(manager.config.PackagesFolder, fmt.Sprintf("%s.yaml", pkgName))
 	if assert.FileExists(t, pkgPath, "manager.Add should have created a package file") {
