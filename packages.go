@@ -51,8 +51,8 @@ type PackageV1 struct {
 }
 
 func (pkg *Package) SetDefaults() {
-	pkg.GOOS = make(map[string]string)   //strings.ToLower(runtime.GOOS)
-	pkg.GOARCH = make(map[string]string) //strings.ToLower(runtime.GOARCH)
+	pkg.GOOS = make(map[string]string)   // strings.ToLower(runtime.GOOS)
+	pkg.GOARCH = make(map[string]string) // strings.ToLower(runtime.GOARCH)
 }
 
 func (pkg *Package) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -88,9 +88,7 @@ type StateFile struct {
 
 type NewPackageProviderFunc = func(logger zerolog.Logger, config *Config) PackageProvider
 
-var (
-	PackageProviders = make(map[string]NewPackageProviderFunc)
-)
+var PackageProviders = make(map[string]NewPackageProviderFunc)
 
 func (pkg *Package) patternExpand(pattern string, version string) string {
 	mapper := func(placeHolderName string) string {

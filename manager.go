@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -94,15 +93,15 @@ func (manager *ManagerImpl) Config() *Config {
 }
 
 func (manager *ManagerImpl) Init() error {
-	err := os.MkdirAll(manager.config.StateFolder, 0755)
+	err := os.MkdirAll(manager.config.StateFolder, 0o755)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(manager.config.BinFolder, 0755)
+	err = os.MkdirAll(manager.config.BinFolder, 0o755)
 	if err != nil {
 		return err
 	}
-	err = os.MkdirAll(manager.config.PackagesFolder, 0755)
+	err = os.MkdirAll(manager.config.PackagesFolder, 0o755)
 	if err != nil {
 		return err
 	}
@@ -182,6 +181,7 @@ func (manager *ManagerImpl) List() error {
 	}
 	return nil
 }
+
 func (manager *ManagerImpl) Installed() error {
 	for name, version := range manager.StateFile.Packages {
 		fmt.Fprintf(manager.stdout, "%s - %s\n", name, version)
@@ -251,7 +251,7 @@ func (manager *ManagerImpl) Install(name string, force bool) (err error) {
 		return nil
 	}
 
-	manager.tmpDir, err = ioutil.TempDir("", "bpm-*")
+	manager.tmpDir, err = os.MkdirTemp("", "bpm-*")
 	if err != nil {
 		return err
 	}
@@ -371,7 +371,7 @@ func (manager *ManagerImpl) update(pkg *Package) (err error) {
 		fmt.Printf("%s %s => %s\n", pkg.Name, currentVersion, version)
 	}
 
-	manager.tmpDir, err = ioutil.TempDir("", "bpm-*")
+	manager.tmpDir, err = os.MkdirTemp("", "bpm-*")
 	if err != nil {
 		return err
 	}
@@ -428,7 +428,7 @@ func (manager *ManagerImpl) install(pkg *Package, version string, sourceFile str
 		return err
 	}
 	// make it executable
-	err = os.Chmod(targetPathWithVersion, 0755)
+	err = os.Chmod(targetPathWithVersion, 0o755)
 	if err != nil {
 		os.Remove(targetPathWithVersion)
 		return err
@@ -467,6 +467,7 @@ func (manager *ManagerImpl) extractTar(pkg *Package, version string, sourcePath 
 	defer sourceFile.Close()
 	return manager.extractTarReader(pkg, version, sourceFile)
 }
+
 func (manager *ManagerImpl) extractTarReader(pkg *Package, version string, reader io.Reader) (string, error) {
 	tarReader := tar.NewReader(reader)
 	var outputPath string
