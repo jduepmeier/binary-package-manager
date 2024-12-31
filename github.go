@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v62/github"
+	"github.com/google/go-github/v68/github"
 	"github.com/rs/zerolog"
 )
 
@@ -45,7 +45,7 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 		client: github.NewClient(client),
 		logger: logger,
 	}
-	limits, _, err := provider.client.RateLimits(context.Background())
+	limits, _, err := provider.client.RateLimit.Get(context.Background())
 	if err != nil {
 		logger.Err(err).Msgf("cannot get rate limits")
 	} else {
