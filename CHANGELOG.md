@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.6 (2024-12-31)
+
+### Fix
+
+- **ioutil**: remove deprecated ioutil functions
+- **github**: fix rate limit deprecation warning
+- **deps**: update module github.com/google/go-github/v62 to v68
+- **deps**: update module github.com/stretchr/testify to v1.10.0
+- **deps**: update module github.com/masterminds/semver/v3 to v3.3.1
+- **deps**: update module github.com/creasty/defaults to v1.8.0
+
+### Refactor
+
+- **names**: rename variables and fields to follow styleguide
+
 ## 0.4.5 (2024-06-29)
 
 ### Fix
