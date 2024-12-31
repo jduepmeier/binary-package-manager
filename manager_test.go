@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -34,6 +33,7 @@ func writeTestConfig(t *testing.T, config *Config) string {
 	}
 	return configPath
 }
+
 func writeTestState(t *testing.T, state *StateFile) string {
 	testDir := t.TempDir()
 	statePath := path.Join(testDir, "state.yaml")
@@ -89,6 +89,7 @@ func (provider *DummyProvider) GetLatest(pkg Package) (version string, err error
 	}
 	return "", ErrProviderFetch
 }
+
 func (provider *DummyProvider) FetchPackage(pkg Package, version string, cacheDir string) (outPath string, err error) {
 	if provider.FetchPackages != nil {
 		if inPath, ok := provider.FetchPackages[pkg.Name]; ok {
@@ -144,7 +145,7 @@ func TestNewManager(t *testing.T) {
 
 	t.Run("broken-init", func(t *testing.T) {
 		tmpFile := path.Join(t.TempDir(), "file.yaml")
-		err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0644)
+		err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0o644)
 		if err != nil {
 			t.Fatalf("cannot write tmpFile %s: %s", tmpFile, err)
 		}
@@ -173,7 +174,7 @@ func TestNewManager(t *testing.T) {
 
 func TestManagerInit(t *testing.T) {
 	tmpFile := path.Join(t.TempDir(), "file.yaml")
-	err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0644)
+	err := os.WriteFile(tmpFile, []byte("tmpFile\n"), 0o644)
 	if err != nil {
 		t.Fatalf("cannot write tmpFile %s: %s", tmpFile, err)
 	}
@@ -269,7 +270,6 @@ func TestManagerInfo(t *testing.T) {
 }
 
 func TestManagerList(t *testing.T) {
-
 	tests := []outputTest{
 		{
 			name:     "no-packages",
@@ -294,7 +294,6 @@ func TestManagerList(t *testing.T) {
 }
 
 func TestManagerInstalled(t *testing.T) {
-
 	tests := []outputTest{
 		{
 			name:     "no-packages",
@@ -334,7 +333,6 @@ func setBoolPointer(b bool) *bool {
 }
 
 func TestManagerInstall(t *testing.T) {
-
 	tests := []outputTest{
 		{
 			name:        "no-packages",
@@ -533,7 +531,7 @@ func TestManagerAdd(t *testing.T) {
 	pkgPath := path.Join(manager.config.PackagesFolder, fmt.Sprintf("%s.yaml", pkgName))
 	if assert.FileExists(t, pkgPath, "manager.Add should have created a package file") {
 		pkg := Package{}
-		content, err := ioutil.ReadFile(pkgPath)
+		content, err := os.ReadFile(pkgPath)
 		if err == nil {
 			t.Logf("package content: %s", string(content))
 		}
@@ -546,7 +544,6 @@ func TestManagerAdd(t *testing.T) {
 }
 
 func TestManagerOutdated(t *testing.T) {
-
 	tests := []outputTest{
 		{
 			name:     "no-packages",

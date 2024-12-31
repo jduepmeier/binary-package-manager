@@ -2,7 +2,6 @@ package bpm
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -42,7 +41,6 @@ func getTestTmpDirConfig(t *testing.T) *Config {
 }
 
 func TestConfigLoad(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		filename           string
@@ -94,7 +92,6 @@ func TestConfigLoad(t *testing.T) {
 }
 
 func TestDefaultConfigPaths(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		result  *Config
@@ -229,7 +226,7 @@ func TestDumpYaml(t *testing.T) {
 			err := dumpYaml(filePath, test.elem)
 			assert.ErrorIs(t, err, test.err)
 			if test.err == nil {
-				content, err := ioutil.ReadFile(filePath)
+				content, err := os.ReadFile(filePath)
 				assert.NoError(t, err, "should should be readable")
 				assert.Equal(t, expectedContent, string(content))
 			}
