@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.7 (2025-02-09)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v68 to v69
+
 ## 0.4.6 (2024-12-31)
 
 ### Fix
