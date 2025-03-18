@@ -1,6 +1,6 @@
 module github.com/jduepmeier/binary-package-manager
 
-go 1.22.0
+go 1.23.0
 
 toolchain go1.23.6
 
@@ -12,7 +12,8 @@ require (
 )
 
 require (
-	github.com/google/go-github/v69 v69.0.0
+	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v70 v70.0.0
 	github.com/stretchr/testify v1.10.0
 	github.com/ulikunitz/xz v0.5.12
 	gopkg.in/yaml.v3 v3.0.1
