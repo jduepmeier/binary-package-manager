@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.8 (2025-04-21)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v69 to v71
+- **deps**: update module github.com/rs/zerolog to v1.34.0
+- **deps**: update module github.com/google/go-github/v69 to v69.2.0
+
 ## 0.4.7 (2025-02-09)
 
 ### Fix
