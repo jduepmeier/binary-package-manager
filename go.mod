@@ -8,7 +8,7 @@ require (
 	github.com/creasty/defaults v1.8.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 )
 
 require (
