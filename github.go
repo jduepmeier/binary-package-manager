@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v73/github"
 	"github.com/rs/zerolog"
 )
 
