@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.9 (2025-07-06)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v71 to v73
+- **deps**: update module github.com/masterminds/semver/v3 to v3.4.0
+
 ## 0.4.8 (2025-04-21)
 
 ### Fix
