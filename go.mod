@@ -14,7 +14,7 @@ require (
 require (
 	github.com/google/go-github/v73 v73.0.0
 	github.com/stretchr/testify v1.10.0
-	github.com/ulikunitz/xz v0.5.12
+	github.com/ulikunitz/xz v0.5.13
 	gopkg.in/yaml.v3 v3.0.1
 )
 
