@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.10 (2025-09-03)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v73 to v74
+- **deps**: update module github.com/stretchr/testify to v1.11.1
+- **deps**: update module github.com/ulikunitz/xz to v0.5.15 [security]
+
 ## 0.4.9 (2025-07-06)
 
 ### Fix
