@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.11 (2025-10-11)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v74 to v75
+
 ## 0.4.10 (2025-09-03)
 
 ### Fix
