@@ -6,13 +6,14 @@ toolchain go1.25.5
 
 require (
 	github.com/creasty/defaults v1.8.0
-	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/rs/zerolog v1.34.0
 )
 
 require (
 	github.com/google/go-github/v80 v80.0.0
+	github.com/google/go-github/v82 v82.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
 	gopkg.in/yaml.v3 v3.0.1
