@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.13 (2026-03-08)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v80 to v84
+
 ## 0.4.12 (2025-12-15)
 
 ### Fix
