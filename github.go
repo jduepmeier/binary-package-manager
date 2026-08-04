@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v85/github"
+	"github.com/google/go-github/v90/github"
 	"github.com/rs/zerolog"
 )
 
@@ -29,20 +29,28 @@ func init() {
 	PackageProviders["github.com"] = NewGithubProvider
 }
 
-func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
+func NewGithubProvider(logger zerolog.Logger, config *Config) (PackageProvider, error) {
 	logger = logger.With().Str("module", "github").Logger()
 	githubConfig := config.Github
 	client := &http.Client{}
 	if githubConfig.Username != "" {
 		if githubConfig.Token == "" {
-			logger.Error().Msgf("If github username is set a token must be set!")
+			err := fmt.Errorf("If github username is set a token must be set!")
+			logger.Error().Msg(err.Error())
+			return nil, err
 		} else {
 			client.Transport = newBasicAuthTransport(githubConfig.Username, githubConfig.Token, nil)
 		}
 		logger.Debug().Msgf("use provided username %s", githubConfig.Username)
 	}
+	ghClient, err := github.NewClient(github.WithHTTPClient(client))
+	if err != nil {
+		err := fmt.Errorf("cannot create github client: %w", err)
+		logger.Error().Msg(err.Error())
+		return nil, err
+	}
 	provider := &GithubProvider{
-		client: github.NewClient(client),
+		client: ghClient,
 		logger: logger,
 	}
 	limits, _, err := provider.client.RateLimit.Get(context.Background())
@@ -51,7 +59,7 @@ func NewGithubProvider(logger zerolog.Logger, config *Config) PackageProvider {
 	} else {
 		logger.Debug().Msgf("got rate limits: %d (remaining %d, resets at %s)", limits.Core.Limit, limits.Core.Remaining, limits.Core.Reset.String())
 	}
-	return provider
+	return provider, nil
 }
 
 // sortReleases sorts github releases inplace stable
@@ -150,7 +158,7 @@ func (provider *GithubProvider) FetchPackage(pkg Package, version string, cacheD
 		if assetPattern.Match([]byte(name)) {
 			url := asset.GetBrowserDownloadURL()
 			provider.logger.Debug().Msgf("get asset from %s", url)
-			req, err := provider.client.NewRequest("GET", url, nil)
+			req, err := provider.client.NewRequest(ctx, "GET", url, nil)
 			if err != nil {
 				return path, err
 			}
@@ -160,7 +168,7 @@ func (provider *GithubProvider) FetchPackage(pkg Package, version string, cacheD
 				return path, err
 			}
 			defer file.Close()
-			_, err = provider.client.Do(ctx, req, file)
+			_, err = provider.client.Do(req, file)
 			if err != nil {
 				return path, err
 			}
