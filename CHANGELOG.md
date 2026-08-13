@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.14 (2026-08-13)
+
+### Fix
+
+- **deps**: update module github.com/google/go-github/v85 to v90
+- **deps**: update module github.com/ulikunitz/xz to v0.5.16
+- **deps**: update module github.com/rs/zerolog to v1.35.1
+- **deps**: update module github.com/masterminds/semver/v3 to v3.5.0
+- **deps**: update module github.com/google/go-github/v84 to v85
+
 ## 0.4.13 (2026-03-08)
 
 ### Fix
